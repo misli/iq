@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from django import forms
 from .models import *
-from .widgets import TownSelectWidget
 
 
 from verified_email_field.forms import VerifiedEmailField
@@ -18,9 +17,6 @@ class DemandSessionWizardForm1(forms.ModelForm):
     class Meta:
         model = Demand
         fields = ['subjectLevel', 'towns', 'subject_desript']
-        # widgets = {
-        #     'town': TownSelectWidget,
-        # }
 
 class DemandSessionWizardForm2(forms.ModelForm):
     class Meta:
