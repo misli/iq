@@ -1,0 +1,10 @@
+{% extends 'iq/base.html' %}
+
+{% block content %}
+<p>kategorie :</p>
+<ul>
+    {% for category in object_list %}
+        <li><a href="/predmety/{{category.slug}}/">{{category.name}}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}

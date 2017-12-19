@@ -1,0 +1,10 @@
+{% extends "iq/base.html" %}
+
+{% block content %}
+    <h2>Poptávky</h2>
+    <ul>
+        {% for demand in object_list %}
+        <li><a href="/poptavka/{{demand.id}}/">{{ demand }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}

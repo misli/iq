@@ -1,0 +1,12 @@
+{% extends 'iq/base.html' %}
+
+{% block content %}
+<p>toto je přehled lektorů</p>
+<ul>
+  {% for lector in object_list %}
+    {% if lector.has_complete_profile %}
+      <li><a href="/lektor/{{lector.id}}/">{{ lector }}</a></li>
+    {% endif %}
+  {% endfor %}
+</ul>
+{% endblock %}

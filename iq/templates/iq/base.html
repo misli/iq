@@ -1,0 +1,33 @@
+{% load staticfiles %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}{% endblock %}</title>
+  <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block head %}{% endblock %}
+  {% block css %}{% endblock %}
+</head>
+<body>
+  <div id="log">
+    {% if request.user.is_authenticated %}
+    <a href="/lektor/{{request.user.id}}/" class="color-blue">{{request.user.lector}}</a> | <a href="/odhlaseni/">odhlásit se</a>
+    {% else %}
+    <a href="/prihlaseni/" class="color-blue">přihlášní</a> | <a href="/registrace/">registrace</a>
+    {% endif %}
+  </div>
+  <div id="header">
+    <a href="/lektori/">lektoři</a> | <a href="/predmety/">předměty</a>
+  </div>
+  <div id="content">
+    {% block content %}{% endblock %}
+  </div>
+  <div id="footer">
+    <a href="/onas/">o nás</a> | <a href="/kontakt/">kontakt</a>
+  </div>
+  {% block js %}{% endblock %}
+</body>
+</html>

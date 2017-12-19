@@ -1,0 +1,26 @@
+{% extends 'iq/base.html' %}
+
+{% block content %}
+
+{% if lector.id == request.user.id %}
+  {% if not lector.has_complete_profile %}
+    <p>Váš lektorský profil je velmi smutný. Vyplňte jej, prosím</p>
+  {% endif %}
+    <a href="/lektor/uprava-profilu/">upravit</a>
+{% endif %}
+  {% if lector.has_complete_profile %}
+    <h3>{{ lector }}<h3>
+    <h4>předměty, které doučuje</h4>
+    <ul>
+      {% for sl in lector.subjectLevels.all %}
+      <li>{{ sl }}</li>
+      {% endfor %}
+    </ul>
+    <h4>Města, v nichž doučuje</h4>
+    <ul>
+      {% for t in lector.towns.all %}
+      <li>{{ t }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

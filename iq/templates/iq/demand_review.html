@@ -1,0 +1,12 @@
+{% extends 'iq/base.html' %}
+
+{% block content %}
+<p>toto je stránka shrnují obsah právě přidané poptávky</p>
+<ul>
+{% for form in form_list %}
+    {% for field in form %}
+        <li>{{field.label}} : {{field.value}}</li>
+    {% endfor %}
+{% endfor %}
+</ul>
+{% endblock %}

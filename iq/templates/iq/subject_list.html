@@ -1,0 +1,11 @@
+{% extends 'iq/base.html' %}
+
+{% block content %}
+
+<p><a href="/predmety/">kategorie</a> / {% with first=object_list|first %}{{ first.category }}{% endwith %} :</p>
+<ul>
+    {% for subject in object_list %}
+        <li><a href="/predmet/{{subject.slug}}/">{{ subject }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}

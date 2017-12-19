@@ -1,0 +1,19 @@
+{% extends 'iq/base.html' %}
+
+{% block title %}Přihlášení{% endblock %}
+
+{% block content %}
+{% if request.user.is_anonymous %}
+  <h2>Přihlášení</h2>
+  <form method="post">
+    <table>
+      {% csrf_token %}
+      {{ form.as_table }}
+    </table>
+    <button type="submit">Login</button>
+  </form>
+{% else %}
+  <p>{{ request.user }}</p>
+  <p>nejste to vy? <a href="/relog/">přihlásit jako jiný uživatel.</a></p>
+{% endif %}
+{% endblock %}

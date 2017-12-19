@@ -1,0 +1,39 @@
+body {
+  color: #7A6958;
+}
+a, a:hover {
+  color: #7A6958;
+  /*text-decoration: none;*/
+}
+.color-blue {
+  color: #1D70b7
+}
+/*
+pozadi #CABB9F
+světlé tlačítko #A48974
+tmave tlačítko #7A6958
+modrá #1D70b7*/
+body > *{
+  padding: 2%;
+}
+.helptext{
+  font-size: 0.8em;
+}
+#log{
+  position: absolute;
+  top: 0px;
+  right: 0px;
+}
+#header {
+  text-transform: uppercase;
+  border-bottom: solid 5px #CABB9F;
+}
+#content {
+}
+#footer {
+  position: fixed;
+  bottom: 0px;
+  width: 100%;
+  background-color: #CABB9F;
+  text-align: center;
+}
