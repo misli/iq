@@ -13,7 +13,7 @@
     <button type="submit">Login</button>
   </form>
 {% else %}
-  <p>{{ request.user }}</p>
+  <p>{{ request.user.lector }}</p>
   <p>nejste to vy? <a href="/relog/">přihlásit jako jiný uživatel.</a></p>
 {% endif %}
 {% endblock %}
