@@ -1,0 +1,25 @@
+#svg_map, #town_lists {
+  display: inline-block;
+}
+#town_lists li{
+  cursor: pointer;
+}
+.kraj:hover {
+  stroke: none;
+  fill: #A48974;
+  fill-opacity: 1;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.kraj {
+  stroke: none;
+  fill: #cabb9f;
+  fill-opacity: 1;
+  transition: all 0.3s;
+}
+.selected {
+  fill: #B7A289;
+}
+.focused {
+  fill: #A48974;
+}

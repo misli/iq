@@ -10,6 +10,28 @@ from autoslug import AutoSlugField
 from django.conf import settings
 from django.core.mail import send_mail
 import datetime
+import json
+from django.forms.widgets import SelectMultiple
+
+class TownSelectWidget(SelectMultiple):
+    template_name = 'iq/widgets/subjectLevel_select.html'
+
+    def get_context(self, name, value, attrs):
+        context = super(TownSelectWidget, self).get_context(name, value, attrs)
+        towns = Town.objects.all().order_by('name')
+        town_list = json.dumps([ [  t.pk, t.name, t.county, ] for t in towns ])
+        context['widget']['town_list'] = town_list
+        context['widget']['attrs']['id'] = 'select_towns'
+        if self.allow_multiple_selected:
+            context['widget']['attrs']['multiple'] = 'multiple'
+        return context
+
+    class Media:
+        css = {
+            'all': ('css/town_select_widget.css',)
+        }
+        # js = ('js/town_select_widget.js',)
+
 
 
 class Settings(models.Model):

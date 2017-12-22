@@ -87,16 +87,6 @@ class signup(views.View):
         return render(request, self.template_name, {'form': form})
 
 
-class TownSelectView(views.View):
-    # testovací view
-    template_name = 'iq/town_select.html'
-
-    def get(self, request):
-        towns = models.Town.objects.all().order_by('name')
-        town_list = json.dumps([ [ t.name, t.county, t.countyCapital, False ] for t in towns ])
-        return render( request, self.template_name, {'town_list': town_list } )
-
-
 class CategoryListView(views.generic.list.ListView):
     model = models.Category
 
@@ -186,7 +176,7 @@ class DemandDetailView(views.generic.detail.DetailView):
 class DemandUpdateView(views.generic.edit.UpdateView):
     model = models.Demand
     success_url = '/poptavka-zmenena/'
-    fields = ['towns','subjectLevel','lessons','students']
+    form_class = forms.DemandUpdateForm
     template_name_suffix = '_edit'
 
 def demand_updated_view(request):
@@ -207,8 +197,7 @@ class LectorDetailView(views.generic.detail.DetailView):
 @method_decorator(login_required, name='dispatch')
 class LectorUpdateView(views.generic.edit.UpdateView):
     model = models.Lector
-    fields = ['titles_before','first_name','last_name','titles_after','intro','price','towns','subjectLevels']
-    # form_class = forms.LectorUpdateForm
+    form_class = forms.LectorUpdateForm
     success_url = '/lektor/{id}/'
     template_name_suffix = '_edit'
 

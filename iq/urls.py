@@ -23,6 +23,5 @@ urlpatterns = [
     url(r'^moje-poptavka/(?P<slug>[a-zA-Z0-9]{32})/$', views.DemandUpdateView.as_view()),
     url(r'^nova-poptavka/', views.DemandSessionWizardView.as_view()),
     url(r'^poptavka-zmenena/', views.demand_updated_view),
-    url(r'^town/', views.TownSelectView.as_view()),
     url(r'^$', views.home),
 ]
