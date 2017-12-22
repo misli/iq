@@ -14,7 +14,7 @@ import json
 from django.forms.widgets import SelectMultiple
 
 class TownSelectWidget(SelectMultiple):
-    template_name = 'iq/widgets/subjectLevel_select.html'
+    template_name = 'iq/widgets/town_select.html'
 
     def get_context(self, name, value, attrs):
         context = super(TownSelectWidget, self).get_context(name, value, attrs)
