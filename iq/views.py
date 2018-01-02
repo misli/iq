@@ -59,7 +59,6 @@ class AccounManager(views.View):
                 new_transaction.save()
 
     def get(self, request):
-        # r = requests.get('https://www.fio.cz/ib_api/rest/periods/{}/2017-08-01/2017-08-31/transactions.json'.format(settings.FIO_API_TOKEN))
         r = requests.get('https://www.fio.cz/ib_api/rest/last/{}/transactions.json'.format(settings.FIO_API_TOKEN))
         data = json.loads(r.text)
         self.save_data(data)
@@ -141,21 +140,19 @@ class DemandSessionWizardView(SessionWizardView):
     form_list   = [forms.DemandSessionWizardForm1, forms.DemandSessionWizardForm2, forms.DemandSessionWizardForm3]
     def done(self, form_list, **kwargs):
         form = self.get_all_cleaned_data()
-        d = models.Demand(
-            email=form['email'],
-            first_name=form['first_name'],
-            last_name=form['last_name'],
-            lessons=form['lessons'],
-            students=form['students'],
-            subject_desript=form['subject_desript'],
-            time_desript=form['time_desript'],
+        d = models.Demand.objects.create(
+            email = form['email'],
+            first_name = form['first_name'],
+            last_name = form['last_name'],
+            lessons = form['lessons'],
+            students = form['students'],
             subject = form['subject'],
             level = form['level'],
+            subject_desript = form['subject_desript'],
+            time_desript = form['time_desript'],
         )
-        d.save()
-        d.towns = form['towns']
-        # d.visible_for = form['visible_for']
-        d.save()
+        d.towns.add = form['towns']
+        # d.visible_for.add = form['visible_for']
         return render(self.request, 'iq/demand_review.html', {
             'form_list': form_list,
         })

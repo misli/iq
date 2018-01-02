@@ -6,10 +6,6 @@ from verified_email_field.forms import VerifiedEmailField
 from django.contrib.auth.forms import UserCreationForm
 
 
-class TownSelectFormField(forms.ModelMultipleChoiceField):
-    widget = TownSelectWidget
-
-
 class RegistrationForm(UserCreationForm):
     email = VerifiedEmailField(label='email', required=True)
     class Meta:
@@ -18,10 +14,12 @@ class RegistrationForm(UserCreationForm):
 
 
 class DemandSessionWizardForm1(forms.ModelForm):
-    towns = TownSelectFormField(queryset=Town.objects.all())
     class Meta:
         model = Demand
         fields = ['subject','level', 'towns', 'subject_desript']
+        widgets = {
+            'towns':TownSelectWidget
+        }
 
 
 class DemandSessionWizardForm2(forms.ModelForm):
@@ -41,14 +39,18 @@ TeachFormSet = inlineformset_factory(Lector, Teach, fields=('subject', 'level', 
 
 
 class LectorUpdateForm(forms.ModelForm):
-    towns = TownSelectFormField(queryset=Town.objects.all())
     class Meta:
         model = Lector
         fields = ['titles_before','first_name','last_name','titles_after','price','towns']
+        widgets = {
+            'towns':TownSelectWidget
+        }
 
 
 class DemandUpdateForm(forms.ModelForm):
-    towns = TownSelectFormField(queryset=Town.objects.all())
     class Meta:
         model = Demand
         fields = ['subject','level', 'towns', 'lessons', 'students']
+        widgets = {
+            'towns':TownSelectWidget
+        }

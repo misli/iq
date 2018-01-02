@@ -1,8 +1,14 @@
 {% extends "iq/base.html" %}
 
 {% block content %}
-<!-- <p>město: {{ demand.towns }}</p> -->
 <h2>předmět: {{ demand.subject }} - {{ demand.level }}</h2>
+{% if demand.towns.all|length == 1 %}
+<p>město: {{ demand.towns.all|first }}</p>
+{% else %}
+  {% for t in demand.towns.all %}
+    <p>města: {{ t.name }}</p>
+  {% endfor %}
+{% endif %}
 <p>datum vložení: {{ demand.date_posted|date }}</p>
 {% if able_to_take %}
     <button type="button">beru to!</button>

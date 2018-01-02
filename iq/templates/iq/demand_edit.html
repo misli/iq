@@ -1,5 +1,9 @@
 {% extends 'iq/base.html' %}
 
+{% block head %}
+{{ form.media }}
+{% endblock %}
+
 {% block content %}
     <p>toto je stránka pro editaci poptávky č. {{ demand.id }}</p>
     <form action="" method="post">
