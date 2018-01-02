@@ -33,7 +33,6 @@ class TownSelectWidget(SelectMultiple):
         # js = ('js/town_select_widget.js',)
 
 
-
 class Settings(models.Model):
     default_email_address               = models.EmailField('výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
     notif_email_new_demand_subject      = models.CharField('Upozornění na novou poptávku: předmět', default='Nová poptávka', max_length=50)
@@ -245,18 +244,6 @@ class Level(models.Model):
         verbose_name_plural = "Úroveně"
 
 
-class SubjectLevel(models.Model):
-    subject     = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name='Předmět')
-    level       = models.ForeignKey(Level, on_delete=models.CASCADE, verbose_name='Úroveň')
-
-    def __unicode__(self):
-        return '{} - {}'.format(self.subject.name, self.level.name).strip()
-
-    class Meta:
-        unique_together = (('subject', 'level'),)
-        verbose_name = "Úroveň předmětu"
-        verbose_name_plural = "Úroveně předmětů"
-
 # title_before = ("as.","odb. as.","doc.","prof.","Bc.","BcA.","Ing.","Ing. arch.","JUDr.","MDDr.","MgA.","Mgr.","MSDr.","MUDr.","MVDr.","PaedDr.","PharmDr.","PhDr.","PhMr.","RCDr.","RNDr.","RSDr.","RTDr.","ThDr.","ThLic.","ThMgr.")
 # title_after = ("CSc.","Dr.","DrSc.","DSc.","Ph.D.","Th.D.","DiS.")
 
@@ -269,7 +256,7 @@ class Lector(models.Model):
     intro           = models.CharField('O mně', max_length=200, blank=True, null=True)
     towns           = models.ManyToManyField(Town, blank=True, verbose_name='Města')
     credit          = models.FloatField(default=0, editable=False)
-    subjectLevels   = models.ManyToManyField(SubjectLevel, verbose_name='Doučuji')
+    subjects         = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
     price           = models.FloatField(default=300)
     is_active       = models.BooleanField(default=True, editable=False)
 
@@ -280,14 +267,14 @@ class Lector(models.Model):
         self.is_active = True
 
     def has_complete_profile(self):
-        if self.first_name and self.last_name and self.towns and self.subjectLevels:
+        if self.first_name and self.last_name and self.towns and self.subjects:
             return True
         else:
             return False
 
     def take_ability_check(self, demand):
         if self.has_complete_profile():
-            if demand.subjectLevel in self.subjectLevels.all():
+            if demand.subject in self.subjects.all():
                 for town in demand.towns.all():
                     if town in self.towns.all():
                         return True
@@ -329,6 +316,16 @@ class Lector(models.Model):
         verbose_name_plural = 'Lektoři'
 
 
+
+class Teach(models.Model):
+    lector      = models.ForeignKey(Lector, verbose_name="Lektor")
+    subject     = models.ForeignKey(Subject, verbose_name="Předmět")
+    level       = models.ForeignKey(Level, verbose_name="Úroveň")
+    price       = models.IntegerField("Cena")
+
+    class Meta:
+        unique_together = (('lector', 'subject', 'level'),)
+
 class Holyday(models.Model):
     lector   = models.ForeignKey(Lector)
     start    = models.DateField(default=datetime.date.today)
@@ -352,7 +349,8 @@ class Demand(models.Model):
     last_name       = models.CharField('Príjmení', max_length=100)
     email           = models.EmailField('E-mail')
     towns           = models.ManyToManyField(Town, verbose_name='Město')
-    subjectLevel    = models.ForeignKey(SubjectLevel, on_delete=models.PROTECT, verbose_name='Předmět')
+    subject         = models.ForeignKey(Subject, on_delete=models.PROTECT, verbose_name='Předmět')
+    level           = models.ForeignKey(Level, on_delete=models.PROTECT, verbose_name='Úroveň')
     date_posted     = models.DateTimeField('Datum Vložení', auto_now_add=True)
     date_updated    = models.DateTimeField('Datum poslední úpravy', auto_now=True)
     lessons         = models.PositiveSmallIntegerField('Počet lekcí', default=1, choices=lessons_chices)
@@ -398,8 +396,7 @@ class Demand(models.Model):
                 raise IntegrityError(e.message)
 
     def __unicode__(self):
-        # return self.subjectLevel.__unicode__()
-        return self.first_name
+        return '{} - {}'.format( self.subject, self.level).strip()
 
     class Meta:
         verbose_name = "Poptávka"
@@ -513,20 +510,6 @@ class CreditReturn(CreditTransaction):
     reasen  = models.CharField('Důvod vrácení', max_length=100, default='Doučování proběhlo v menším, než předpokládaném rozsahu')
     comment = models.CharField('Poznámka', max_length=100, default="")
 
-
-@receiver(post_save, sender=Subject)
-def subjectLevel_update_by_adding_subject(sender, **kwargs):
-    if kwargs['created']:
-        for l in Level.objects.filter(scheme = kwargs['instance'].scheme):
-            sl = SubjectLevel(subject=kwargs['instance'], level=l)
-            sl.save()
-
-@receiver(post_save, sender=Level)
-def subjectLevel_update_by_adding_level(sender, **kwargs):
-    if kwargs['created']:
-        for s in Subject.objects.filter(scheme = kwargs['instance'].scheme):
-            sl = SubjectLevel(level=kwargs['instance'], subject=s)
-            sl.save()
 
 @receiver(post_save, sender=User)
 def lector_add(sender, **kwargs):

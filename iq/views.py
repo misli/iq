@@ -147,9 +147,10 @@ class DemandSessionWizardView(SessionWizardView):
             last_name=form['last_name'],
             lessons=form['lessons'],
             students=form['students'],
-            subjectLevel=form['subjectLevel'],
             subject_desript=form['subject_desript'],
             time_desript=form['time_desript'],
+            subject = form['subject'],
+            level = form['level'],
         )
         d.save()
         d.towns = form['towns']
@@ -191,7 +192,7 @@ class LectorDetailView(views.generic.detail.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(LectorDetailView, self).get_context_data(**kwargs)
-        context['subjects'] = models.SubjectLevel.objects.filter(lector=context['object'].id)
+        context['subjects'] = models.Subject.objects.filter(lector=context['object'].id)
         return context
 
 @method_decorator(login_required, name='dispatch')
@@ -203,6 +204,26 @@ class LectorUpdateView(views.generic.edit.UpdateView):
 
     def get_object(self, queryset=None):
         return self.request.user.lector
+
+    def get_context_data(self, **kwargs):
+        context = super(LectorUpdateView, self).get_context_data(**kwargs)
+        if self.request.POST:
+            context['teach_formset'] = forms.TeachFormSet(self.request.POST, instance=self.object)
+            context['teach_formset'].full_clean()
+        else:
+            context['teach_formset'] = forms.TeachFormSet(instance=self.object)
+            return context
+
+    def form_valid(self, form):
+          context = self.get_context_data()
+          formset = context['teach_formset']
+          if formset.is_valid():
+              self.object = form.save()
+              formset.instance = self.object
+              formset.save()
+              return redirect(self.success_url)
+          else:
+              return self.render_to_response(self.get_context_data(form=form))
 
 
 def home(request):

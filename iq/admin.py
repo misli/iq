@@ -43,8 +43,14 @@ class TownAdmin(admin.ModelAdmin):
     list_display = ('__unicode__','slug','county')
 
 
+class TeachInline(admin.TabularInline):
+    model = Teach
+    extra = 1
+
+
 class LectorAdmin(admin.ModelAdmin):
     list_display = ('user','__unicode__','credit')
+    inlines = (TeachInline, )
     filter_horizontal = ('towns',)
     readonly_fields = ('user','date_registred', 'credit')
 

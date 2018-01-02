@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django import forms
-from .models import TownSelectWidget, Town, User, Demand, Lector
+from django.forms.models import inlineformset_factory
+from .models import *
 from verified_email_field.forms import VerifiedEmailField
 from django.contrib.auth.forms import UserCreationForm
 
@@ -20,7 +21,7 @@ class DemandSessionWizardForm1(forms.ModelForm):
     towns = TownSelectFormField(queryset=Town.objects.all())
     class Meta:
         model = Demand
-        fields = ['subjectLevel', 'towns', 'subject_desript']
+        fields = ['subject','level', 'towns', 'subject_desript']
 
 
 class DemandSessionWizardForm2(forms.ModelForm):
@@ -36,15 +37,18 @@ class DemandSessionWizardForm3(forms.ModelForm):
         fields = ['first_name', 'last_name', 'email',]
 
 
+TeachFormSet = inlineformset_factory(Lector, Teach, fields=('subject', 'level', 'price'), extra=1)
+
+
 class LectorUpdateForm(forms.ModelForm):
     towns = TownSelectFormField(queryset=Town.objects.all())
     class Meta:
         model = Lector
-        fields = ['titles_before','first_name','last_name','titles_after','price','towns','subjectLevels']
+        fields = ['titles_before','first_name','last_name','titles_after','price','towns']
 
 
 class DemandUpdateForm(forms.ModelForm):
     towns = TownSelectFormField(queryset=Town.objects.all())
     class Meta:
         model = Demand
-        fields = ['towns','subjectLevel','lessons','students']
+        fields = ['subject','level', 'towns', 'lessons', 'students']
