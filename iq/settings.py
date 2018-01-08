@@ -26,6 +26,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'au90-vdp+=)k8ib&zz&b_oo(mbc@%i77iwy(z_gnuu0db2_-u#'
 
 FIO_API_TOKEN = '<token>'
+# interval in seconds
+FIO_API_MIN_REQUEST_INTERVAL = 30
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -117,7 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'cs'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Prague'
 
 USE_I18N = True
 

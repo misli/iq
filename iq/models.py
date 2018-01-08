@@ -253,7 +253,7 @@ class Lector(models.Model):
     first_name      = models.CharField('Křestní jméno', max_length=20)
     last_name       = models.CharField('Příjmení', max_length=20)
     titles_after    = models.CharField('Tituly za jménem', max_length=20, blank=True, null=True)
-    intro           = models.CharField('O mně', max_length=200, blank=True, null=True)
+    intro           = models.CharField('O mně', max_length=200, default="Umím toho hodně a rád Vás to naučím.", blank=True, null=True)
     towns           = models.ManyToManyField(Town, blank=True, verbose_name='Města')
     credit          = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
     subjects        = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
@@ -315,7 +315,6 @@ class Lector(models.Model):
         verbose_name_plural = 'Lektoři'
 
 
-
 class Teach(models.Model):
     lector      = models.ForeignKey(Lector, verbose_name="Lektor")
     subject     = models.ForeignKey(Subject, verbose_name="Předmět")
@@ -324,6 +323,7 @@ class Teach(models.Model):
 
     class Meta:
         unique_together = (('lector', 'subject', 'level'),)
+
 
 class Holyday(models.Model):
     lector   = models.ForeignKey(Lector)
@@ -414,11 +414,10 @@ class AccountRequest(models.Model):
     date_end        = models.DateField("Datum do")
     id_to           = models.BigIntegerField("Do id pohybu", null=True)
     id_from         = models.BigIntegerField("Od id pohybu", null=True)
-    id_last_download = models.BigIntegerField("Id posledního úspěšně staženého pohybu")
-    date_time       = models.DateTimeField("Datum a čas poselního updatu", auto_now_add=True)
+    id_last_download = models.BigIntegerField("Id posledního úspěšně staženého pohybu", null=True)
 
     def __unicode__(self):
-        return str(self.date_time)
+        return str(self.date_end)
 
     class Meta:
         verbose_name = 'Požadavek na výpis'
@@ -512,9 +511,9 @@ class CreditReturn(CreditTransaction):
 
 @receiver(post_save, sender=User)
 def lector_add(sender, **kwargs):
+    """ create a Lector for evry new User """
     if kwargs['created']:
-        l = Lector(user=kwargs['instance'])
-        l.save()
+        l = Lector.objects.create( user=kwargs['instance'] )
 
 @receiver(post_save, sender=Demand)
 def notification_demand_added(sender, **kwargs):
@@ -523,7 +522,6 @@ def notification_demand_added(sender, **kwargs):
         sets.confirm_new_demand(kwargs['instance'])
     else:
         sets.confirm_demand_updated(kwargs['instance'])
-
 
 
 @receiver(post_save, sender=AccountTransaction)

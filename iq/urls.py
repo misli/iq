@@ -11,7 +11,6 @@ urlpatterns = [
     url(r'^prihlaseni/$', auth_views.login, name='login'),
     url(r'^odhlaseni/$', auth_views.logout, name='logout'),
     url(r'^verified-email-field/', include('verified_email_field.urls')),
-    url(r'^acc/$', views.AccounManager.as_view()),
     url(r'^lektori/$', views.LectorListView.as_view()),
     url(r'^lektor/(?P<pk>[0-9]+)/$', views.LectorDetailView.as_view()),
     url(r'^lektor/uprava-profilu/$', views.LectorUpdateView.as_view()),
