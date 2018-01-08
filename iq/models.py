@@ -255,9 +255,8 @@ class Lector(models.Model):
     titles_after    = models.CharField('Tituly za jménem', max_length=20, blank=True, null=True)
     intro           = models.CharField('O mně', max_length=200, blank=True, null=True)
     towns           = models.ManyToManyField(Town, blank=True, verbose_name='Města')
-    credit          = models.FloatField(default=0, editable=False)
-    subjects         = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
-    price           = models.FloatField(default=300)
+    credit          = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    subjects        = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
     is_active       = models.BooleanField(default=True, editable=False)
 
     def deactivate(self):
@@ -409,8 +408,8 @@ class AccountRequest(models.Model):
     # currency        = models.CharField("Měna", max_length=3)
     # iban            = models.CharField("IBAN", max_length=34)
     # bic             = models.CharField("BIC", max_length=11)
-    opening_balance = models.FloatField("Počáteční satv")
-    closing_balance = models.FloatField("Konečný satv")
+    opening_balance = models.DecimalField("Počáteční satv", max_digits=12, decimal_places=2)
+    closing_balance = models.DecimalField("Konečný satv", max_digits=12, decimal_places=2)
     date_start      = models.DateField("Datum od")
     date_end        = models.DateField("Datum do")
     id_to           = models.BigIntegerField("Do id pohybu", null=True)
@@ -429,7 +428,7 @@ class AccountRequest(models.Model):
 class AccountTransaction(models.Model):
     transaction_id  = models.BigIntegerField('ID pohybu', unique=True, editable=False)
     date            = models.DateField('Datum', editable=False)
-    volume          = models.FloatField('Objem',)# editable=False
+    volume          = models.DecimalField('Objem', max_digits=12, decimal_places=2)# editable=False
     currency        = models.CharField('Měna', max_length=3, editable=False)
     counterparty    = models.CharField('Protiúčet', max_length=17, null=True, editable=False)
     counterparty_name = models.CharField('Název protiúčetu', max_length=50, null=True, editable=False)
@@ -473,10 +472,10 @@ class CreditTransaction(models.Model):
     )
     transaction_type= models.CharField('Typ transakce', max_length=1, default='n', choices=transaction_types, editable=False)
     datetime        = models.DateTimeField('Datum a čas zaúčtování', default=datetime.datetime.now, editable=False)
-    volume          = models.FloatField('Částka', default=0, editable=False)
+    volume          = models.DecimalField('Částka', default=0, editable=False, max_digits=12, decimal_places=2)
     lector          = models.ForeignKey(Lector, verbose_name='Lektor', editable=False, null=False)
-    open_balance    = models.FloatField('Počáteční stav', default=0, editable=False)
-    close_balance   = models.FloatField('Konečný stav', default=0, editable=False)
+    open_balance    = models.DecimalField('Počáteční stav', default=0, editable=False, max_digits=12, decimal_places=2)
+    close_balance   = models.DecimalField('Konečný stav', default=0, editable=False, max_digits=12, decimal_places=2)
 
     def __unicode__(self):
         return self.transaction_type
