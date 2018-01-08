@@ -9,7 +9,8 @@
         {% csrf_token %}
         {{ form.as_p }}
         <table>
-        {% for form in teach_formset.forms %}
+        {{ view.teach_formset.management_form }}
+        {% for form in view.teach_formset.forms %}
           {{ form }}
         {% endfor %}
         </table>

@@ -196,29 +196,31 @@ class LectorDetailView(views.generic.detail.DetailView):
 class LectorUpdateView(views.generic.edit.UpdateView):
     model = models.Lector
     form_class = forms.LectorUpdateForm
-    success_url = '/lektor/{id}/'
     template_name_suffix = '_edit'
 
     def get_object(self, queryset=None):
         return self.request.user.lector
 
-    def get_context_data(self, **kwargs):
-        context = super(LectorUpdateView, self).get_context_data(**kwargs)
-        if self.request.POST:
-            context['teach_formset'] = forms.TeachFormSet(self.request.POST, instance=self.object)
-            context['teach_formset'].full_clean()
-        else:
-            context['teach_formset'] = forms.TeachFormSet(instance=self.object)
-            return context
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.teach_formset = forms.TeachFormSet(instance=self.object)
+        return super(LectorUpdateView, self).get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.success_url = '/lektor/{}/'.format(self.object.pk)
+        self.teach_formset = forms.TeachFormSet(self.request.POST, instance=self.object)
+        self.teach_formset.full_clean()
+        return super(LectorUpdateView, self).post(request, *args, **kwargs)
 
     def form_valid(self, form):
-          context = self.get_context_data()
-          formset = context['teach_formset']
+          # context = self.get_context_data()
+          formset = self.teach_formset
           if formset.is_valid():
               self.object = form.save()
               formset.instance = self.object
               formset.save()
-              return redirect(self.success_url)
+              return HttpResponseRedirect(self.success_url)
           else:
               return self.render_to_response(self.get_context_data(form=form))
 
