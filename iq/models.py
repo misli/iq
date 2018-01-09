@@ -13,6 +13,7 @@ import datetime
 import json
 from django.forms.widgets import SelectMultiple
 
+
 class TownSelectWidget(SelectMultiple):
     template_name = 'iq/widgets/town_select.html'
 
@@ -117,6 +118,7 @@ try:
 except:
     pass
 
+
 class UserManager(BaseUserManager):
     """Define a model manager for User model with no username field."""
 
@@ -163,7 +165,7 @@ class User(AbstractUser):
 
 
 class Town(models.Model):
-    county_choices =(
+    COUNTY_CHOICES =(
         ('A', 'Hlavní město Praha'),
         ('S', 'Středočeský kraj'),
         ('C', 'Jihočeský kraj'),
@@ -181,7 +183,7 @@ class Town(models.Model):
     )
     name        = models.CharField(max_length=33)
     slug        = AutoSlugField(populate_from='name')
-    county      = models.CharField(max_length=1, choices=county_choices)
+    county      = models.CharField(max_length=1, choices=COUNTY_CHOICES)
     countyCapital = models.BooleanField()
 
     def __unicode__(self):
@@ -332,13 +334,13 @@ class Holyday(models.Model):
 
 
 class Demand(models.Model):
-    lessons_chices =(
+    LESSONS_CHOICES =(
         (0, '1 lekce'),
         (1, '2-4 lekce'),
         (2, '5-9 lekcí'),
         (3, '10 a vice'),
     )
-    students_chices =(
+    STUDENTS_CHOICES =(
         (0, '1 student'),
         (1, '2 studenti'),
         (2, '3 studenti'),
@@ -352,8 +354,8 @@ class Demand(models.Model):
     level           = models.ForeignKey(Level, on_delete=models.PROTECT, verbose_name='Úroveň')
     date_posted     = models.DateTimeField('Datum Vložení', auto_now_add=True)
     date_updated    = models.DateTimeField('Datum poslední úpravy', auto_now=True)
-    lessons         = models.PositiveSmallIntegerField('Počet lekcí', default=1, choices=lessons_chices)
-    students        = models.PositiveSmallIntegerField('Počet studentů', default=0, choices=students_chices)
+    lessons         = models.PositiveSmallIntegerField('Počet lekcí', default=1, choices=LESSONS_CHOICES)
+    students        = models.PositiveSmallIntegerField('Počet studentů', default=0, choices=STUDENTS_CHOICES)
     subject_desript = models.CharField('Popis doučované láky', max_length=300)
     time_desript    = models.CharField('Kdy se můžem sejít', max_length=300)
     is_taken        = models.BooleanField(default=False)
@@ -463,13 +465,13 @@ class AccountTransaction(models.Model):
 
 
 class CreditTransaction(models.Model):
-    transaction_types =(
+    TRANSACTION_TYPES =(
         ('n', 'neurčeno'),
         ('c', 'dobytí kreditu'),
         ('d', 'Poplatek za převzetí poptávky'),
         ('r', 'Vrácení kreditu'),
     )
-    transaction_type= models.CharField('Typ transakce', max_length=1, default='n', choices=transaction_types, editable=False)
+    transaction_type= models.CharField('Typ transakce', max_length=1, default='n', choices=TRANSACTION_TYPES, editable=False)
     datetime        = models.DateTimeField('Datum a čas zaúčtování', default=datetime.datetime.now, editable=False)
     volume          = models.DecimalField('Částka', default=0, editable=False, max_digits=12, decimal_places=2)
     lector          = models.ForeignKey(Lector, verbose_name='Lektor', editable=False, null=False)
@@ -522,7 +524,6 @@ def notification_demand_added(sender, **kwargs):
         sets.confirm_new_demand(kwargs['instance'])
     else:
         sets.confirm_demand_updated(kwargs['instance'])
-
 
 @receiver(post_save, sender=AccountTransaction)
 def account_transaction_added(sender, **kwargs):

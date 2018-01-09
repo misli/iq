@@ -3,12 +3,12 @@
 {% block content %}
 <p><a href="/predmety/">kategorie</a> / <a href="/predmety/{{ subject.category|slugify }}">{{ subject.category }}</a> / {{ subject.name }} :</p>
 
-<p>{{subject.decription}}</p>
+<p>{{subject.description}}</p>
 <ul>
-    {% for record in lector_list %}
-    <li>{{ record.level }}</li>
+    {% for level, lectors in level_list.items %}
+    <li>{{ level }}</li>
     <ul>
-        {% for lector in record.lectors %}
+        {% for lector in lectors %}
         <li><a href="/lektor/{{ lector.id }}/">{{ lector }}</a></li>
         {% endfor %}
     </ul>

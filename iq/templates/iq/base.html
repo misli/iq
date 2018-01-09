@@ -20,6 +20,7 @@
     {% endif %}
   </div>
   <div id="header">
+    {% if request.user.is_authenticated %}<a href="/poptavky/">poptávky</a> |{% endif %}
     <a href="/lektori/">lektoři</a> | <a href="/predmety/">předměty</a>
   </div>
   <div id="content">

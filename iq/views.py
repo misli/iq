@@ -123,14 +123,13 @@ class SubjectDetailView(views.generic.detail.DetailView):
     def get_context_data(self, **kwargs):
         # přidá informace o tom kdo a na jaké úrovni daný předmět doučuje
         context = super(SubjectDetailView, self).get_context_data(**kwargs)
-        subject_levels = models.SubjectLevel.objects.filter(subject=context['object'])
-        lector_list = []
-        for subject_level in subject_levels:
-            lector_list.append({
-                'level': subject_level.level.name,
-                'lectors': models.Lector.objects.filter(subjectLevels__in = [ subject_level ] )
-            })
-        context['lector_list'] = lector_list
+        teaches = models.Teach.objects.filter(subject=context['object'])
+        context['level_list'] = {}
+        for teach in teaches:
+            if teach.level in context['level_list']:
+                context['level_list'][teach.level].append(teach.lector)
+            else:
+                context['level_list'][teach.level] = [teach.lector]
         return context
 
 

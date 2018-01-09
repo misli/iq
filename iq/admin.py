@@ -26,7 +26,6 @@ class UserAdmin(DjangoUserAdmin):
     ordering = ('email',)
 
 
-
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'id', 'slug')
 
@@ -78,7 +77,6 @@ class TakenDemandAdmin(admin.ModelAdmin):
 
 class DemandAdmin(admin.ModelAdmin):
     readonly_fields = ('date_posted','date_updated')
-
 
 
 admin.site.register(Town, TownAdmin)
