@@ -1,18 +1,30 @@
 {% extends "iq/base.html" %}
 
 {% block content %}
-<h2>předmět: {{ demand.subject }} - {{ demand.level }}</h2>
-{% if demand.towns.all|length == 1 %}
-<p>město: {{ demand.towns.all|first }}</p>
+{% if active %}
+    <h3>Předmět: {{ demand }}</h3>
+    {% if demand.towns.all|length == 1 %}
+        <h3>město: {{ demand.towns.all|first }}</h3>
+    {% else %}
+        <h3>města: {% for t in demand.towns.all %}{{ t.name }}, {% endfor %}</h3>
+    {% endif %}
+    <p>Vloženo: {{ demand.date_posted|date }}</p>
+    <p>Aktualizováno: {{ demand.date_updated|date }}</p>
+    <p>Poplatek: {{ demand.get_charge }} Kč</p>
+
+    {% if not_able %}
+        <button type="button" disabled="true">{{ not_able }}</button>
+    {% else %}
+        <form action="" method="post">
+            {% csrf_token %}
+            <input type="submit" value="To beru !" />
+        </form>
+    {% endif %}
 {% else %}
-  {% for t in demand.towns.all %}
-    <p>města: {{ t.name }}</p>
-  {% endfor %}
-{% endif %}
-<p>datum vložení: {{ demand.date_posted|date }}</p>
-{% if able_to_take %}
-    <button type="button">beru to!</button>
-{% else %}
-    <button type="button" disabled="true">tohle ještě neumím</button>
+    {% if demand.status == 1 %}
+        <h3>Tato poptávka je neaktivní</h3>
+    {% else %}
+        <h3>Tuto poptávku již převzal jiný lektor</h3>
+    {% endif %}
 {% endif %}
 {% endblock %}

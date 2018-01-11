@@ -1,0 +1,11 @@
+{% extends "iq/base.html" %}
+
+{% block content %}
+    <a href="/muj-profil/"><b>můj profil</b></a><b> | moje doučování</b></br>
+    <h2>Moje doučování</h2>
+    <ul>
+        {% for demand in object_list %}
+        <li><a href="/poptavka/{{demand.id}}/">{{ demand.first_name }} {{ demand.last_name }} - {{ demand }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}

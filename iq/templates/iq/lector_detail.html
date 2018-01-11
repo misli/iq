@@ -6,14 +6,15 @@
   {% if not lector.has_complete_profile %}
     <p>Váš lektorský profil je velmi smutný. Vyplňte jej, prosím</p>
   {% endif %}
-    <a href="/lektor/uprava-profilu/">upravit</a>
+    <a href="/muj-profil/">upravit</a>
 {% endif %}
   {% if lector.has_complete_profile %}
-    <h3>{{ lector }}<h3>
+    <h2>{{ lector }}</h2>
+    <p>{{ lector.intro }}
     <h4>předměty, které doučuje</h4>
     <ul>
-      {% for sl in lector.subjectLevels.all %}
-      <li>{{ sl }}</li>
+      {% for t in teach_list %}
+      <li>{{ t }}</li>
       {% endfor %}
     </ul>
     <h4>Města, v nichž doučuje</h4>

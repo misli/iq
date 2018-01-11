@@ -6,6 +6,10 @@ from verified_email_field.forms import VerifiedEmailField
 from django.contrib.auth.forms import UserCreationForm
 
 
+class TakeDemandForm(forms.Form):
+    pass
+
+
 class RegistrationForm(UserCreationForm):
     email = VerifiedEmailField(label='email', required=True)
     class Meta:

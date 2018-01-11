@@ -1,0 +1,15 @@
+{% extends 'iq/base.html' %}
+
+{% block head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+    <p>Opravdu chceš vzít tuhle poptávku?</p>
+    <h3>{{ view.demand }}</h3>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Ano beru !" />
+    </form>
+{% endblock %}

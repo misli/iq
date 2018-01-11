@@ -89,10 +89,10 @@ class signup(views.View):
 class CategoryListView(views.generic.list.ListView):
     model = models.Category
 
+
 class SubjectListView(views.generic.list.ListView):
     template_name = 'iq/subject_list.html'
-
-# celé get zkopírované ze zdroje jen jsem upravil volání get_queryset, aby se předaly argumenty *args, **kwargs
+    # celé get zkopírované ze zdroje jen jsem upravil volání get_queryset, aby se předaly argumenty *args, **kwargs
     def get(self, request, *args, **kwargs):
         self.object_list = self.get_queryset(self, *args, **kwargs)
         allow_empty = self.get_allow_empty()
@@ -150,25 +150,65 @@ class DemandSessionWizardView(SessionWizardView):
             subject_desript = form['subject_desript'],
             time_desript = form['time_desript'],
         )
-        d.towns.add = form['towns']
-        # d.visible_for.add = form['visible_for']
+        for t in form['towns']:
+            d.towns.add(t)
         return render(self.request, 'iq/demand_review.html', {
             'form_list': form_list,
         })
+
 
 @method_decorator(login_required, name='dispatch')
 class DemandListView(views.generic.list.ListView):
     model = models.Demand
 
+    def get_queryset(self, *args, **kwargs):
+        # get only active demands
+        return  self.model.objects.filter(status=0)
+
+
 @method_decorator(login_required, name='dispatch')
-class DemandDetailView(views.generic.detail.DetailView):
+class MyDemandListView(views.generic.list.ListView):
     model = models.Demand
+    template_name = 'iq/my_demand_list.html'
+
+    def get_queryset(self, *args, **kwargs):
+        # get only demands taken by the user
+        return  self.model.objects.filter( taken_by=self.request.user.lector )
+
+
+@method_decorator(login_required, name='dispatch')
+class DemandDetailView(views.generic.edit.FormView):
+    template_name = 'iq/demand_detail.html'
+    model = models.Demand
+    form_class = forms.TakeDemandForm
 
     def get_context_data(self, **kwargs):
-        context = super(DemandDetailView, self).get_context_data(**kwargs)
-        context['able_to_take'] = self.request.user.lector.take_ability_check(context['object'])
+        context = {}
+        context['demand'] = get_object_or_404(self.model, pk=kwargs['pk'] )
+        if not context['demand'].status:
+            # only if demand is active
+            context['active'] = True
+            context['not_able'] = self.request.user.lector.take_ability_check( context['demand'] )
+        else:
+            context['active'] = False
         return context
 
+    def get(self, request, *args, **kwargs):
+        check_account()
+        self.content = self.get_context_data(**kwargs)
+        return self.render_to_response(self.content)
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if context['active']:
+            if context['not_able']:
+                self.success_url = '/'
+                # self.success_url = '/poptavka/{}/'.format(self.object.pk)
+            else:
+                self.success_url = '/vzit-poptavku/{}/'.format(context['demand'].pk)
+            return super(DemandDetailView, self).post(request, *args, **kwargs)
+        else:
+            pass# do nothig on post to non active demand
 
 class DemandUpdateView(views.generic.edit.UpdateView):
     model = models.Demand
@@ -179,6 +219,42 @@ class DemandUpdateView(views.generic.edit.UpdateView):
 def demand_updated_view(request):
     return render(request, 'iq/demand_updated.html')
 
+class TakeDemandView(views.generic.edit.CreateView):
+    template_name = 'iq/take_demand_form.html'
+    model = models.CreditTransaction
+    object = None
+    fields = []
+
+    def get_context_data(self, *args, **kwargs):
+        context = super(TakeDemandView, self).get_context_data()
+        context['demand'] = models.Demand.objects.get(pk=kwargs['pk'])
+        context['lector'] = self.request.user.lector
+        context['not_able'] = context['lector'].take_ability_check( context['demand'] )
+        return context
+
+    def form_valid(self, form):
+        if self.context['not_able']:
+            self.success_url = '/poptavka/{}/'.format(self.object.pk)
+        else:
+            self.model.objects.create(
+                transaction_type = 'd',
+                demand = self.context['demand'],
+                volume = - self.context['demand'].get_charge(),
+                lector = self.context['lector'],
+            )
+            self.success_url = '/moje-doucovani/'
+        return HttpResponseRedirect(self.success_url)
+
+    def get(self, request, *args, **kwargs):
+        self.context = self.get_context_data(**kwargs)
+        self.object = None
+        return self.render_to_response(self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        self.context = self.get_context_data(**kwargs)
+        return super(TakeDemandView, self).post(request, *args, **kwargs)
+
+
 class LectorListView(views.generic.list.ListView):
     model = models.Lector
 
@@ -188,7 +264,7 @@ class LectorDetailView(views.generic.detail.DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(LectorDetailView, self).get_context_data(**kwargs)
-        context['subjects'] = models.Subject.objects.filter(lector=context['object'].id)
+        context['teach_list'] = models.Teach.objects.filter(lector=context['object'].id)
         return context
 
 @method_decorator(login_required, name='dispatch')

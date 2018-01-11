@@ -62,12 +62,13 @@ class Settings(models.Model):
     charge4x2               = models.PositiveIntegerField('Poplatek: 4 studenti 2-4 lekcí', default=200)
     charge4x5               = models.PositiveIntegerField('Poplatek: 4 studenti 5-9 lekcí', default=400)
     charge4x10              = models.PositiveIntegerField('Poplatek: 4 studenti 10 a více lekcí', default=500)
-    charge_list = [
-        [charge1x1, charge1x2, charge1x5, charge1x10],
-        [charge2x1, charge2x2, charge2x5, charge2x10],
-        [charge3x1, charge3x2, charge3x5, charge3x10],
-        [charge4x1, charge4x2, charge4x5, charge4x10],
-    ]
+    def get_charge_list(self):
+        return [
+            [self.charge1x1, self.charge1x2, self.charge1x5, self.charge1x10],
+            [self.charge2x1, self.charge2x2, self.charge2x5, self.charge2x10],
+            [self.charge3x1, self.charge3x2, self.charge3x5, self.charge3x10],
+            [self.charge4x1, self.charge4x2, self.charge4x5, self.charge4x10],
+        ]
     def notify_new_demand(self, demand):
         lectors = Lector.objects.all()
         to_all = []
@@ -84,7 +85,7 @@ class Settings(models.Model):
     def confirm_new_demand(self, demand):
         send_mail(
             self.confi_email_new_demand_subject,
-            '{}\n\nwww.{}/moje-poptavka/{}/'.format( self.confi_email_new_demand_message, settings.DOMAIN, demand.slug ).strip(),
+            '{}\n\nwww.{}/moje-doucovani/{}/'.format( self.confi_email_new_demand_message, settings.DOMAIN, demand.slug ).strip(),
             self.default_email_address,
             [demand.email],
             fail_silently=False,
@@ -93,7 +94,7 @@ class Settings(models.Model):
     def confirm_demand_updated(self, demand):
         send_mail(
             self.confi_email_demand_updated_subject,
-            '{}\n\nwww.{}/moje-poptavka/{}/'.format( self.confi_email_demand_updated_message, settings.DOMAIN, demand.slug ).strip(),
+            '{}\n\nwww.{}/moje-doucovani/{}/'.format( self.confi_email_demand_updated_message, settings.DOMAIN, demand.slug ).strip(),
             self.default_email_address,
             [demand.email],
             fail_silently=False,
@@ -249,6 +250,11 @@ class Level(models.Model):
 # title_before = ("as.","odb. as.","doc.","prof.","Bc.","BcA.","Ing.","Ing. arch.","JUDr.","MDDr.","MgA.","Mgr.","MSDr.","MUDr.","MVDr.","PaedDr.","PharmDr.","PhDr.","PhMr.","RCDr.","RNDr.","RSDr.","RTDr.","ThDr.","ThLic.","ThMgr.")
 # title_after = ("CSc.","Dr.","DrSc.","DSc.","Ph.D.","Th.D.","DiS.")
 
+class LectorManager(models.Manager):
+    def get_queryset(self):
+        return super(LectorManager, self).get_queryset().filter(user__is_active=True)
+
+
 class Lector(models.Model):
     user            = models.OneToOneField(settings.AUTH_USER_MODEL, related_name='lector', on_delete=models.PROTECT, unique=True)
     titles_before   = models.CharField('Tituly před jménem', max_length=20, blank=True, null=True)
@@ -260,6 +266,7 @@ class Lector(models.Model):
     credit          = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
     subjects        = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
     is_active       = models.BooleanField(default=True, editable=False)
+    objects         = LectorManager()
 
     def deactivate(self):
         self.is_active = False
@@ -274,31 +281,32 @@ class Lector(models.Model):
             return False
 
     def take_ability_check(self, demand):
+        """ return False if "able to take", otherwise the reason why not able """
+        ABLE_CHOICES=[
+            False,
+            "nemáš aktivní účet",
+            "tenhle předmět neumíš",
+            "v tomhle městě nedoučuješ",
+            "nemáš dostatečný kredit",
+            "nemáš vyplněný profil",
+        ]
         if self.has_complete_profile():
-            if demand.subject in self.subjects.all():
-                for town in demand.towns.all():
-                    if town in self.towns.all():
-                        return True
+            if demand.get_charge() <= self.credit:
+                compare = list(demand.towns.all()) + list(self.towns.all())
+                if len( set( compare ) ) < len( compare ):
+                    if demand.subject in self.subjects.all():
+                        if self.is_active:
+                            return ABLE_CHOICES[0]
+                        else:
+                            return ABLE_CHOICES[1]
+                    else:
+                        return ABLE_CHOICES[2]
                 else:
-                    return False
+                    return ABLE_CHOICES[3]
             else:
-                return False
+                return ABLE_CHOICES[4]
         else:
-            return False
-
-    def take_demand(self, demand):
-        price = demand.get_price()
-        if self.take_ability_check(demand) and self.credit >= price :
-            with transaction.atomic:
-                TakenDemand(
-                    demand=demand,
-                    volume=price,
-                    lector=self,
-                    open_balance=self.credit,
-                    close_balance=self.credit-price,
-                ).save()
-                self.credit-=price
-                demand.is_taken = True
+            return ABLE_CHOICES[5]
 
     def email(self):
         return self.user.email
@@ -323,6 +331,9 @@ class Teach(models.Model):
     level       = models.ForeignKey(Level, verbose_name="Úroveň")
     price       = models.IntegerField("Cena")
 
+    def __unicode__(self):
+        return '{} na úrovni {}'.format(self.subject.name, self.level.name)
+
     class Meta:
         unique_together = (('lector', 'subject', 'level'),)
 
@@ -334,6 +345,16 @@ class Holyday(models.Model):
 
 
 class Demand(models.Model):
+    DEMAND_TYPE_CHOICES =(
+        ('f', 'Poptávna volná'),
+        ('t', 'Poptávka cílená')
+    )
+    STATUS_CHOICES =(
+        (0, 'Je aktivní'),
+        (1, 'Je neaktivní'),
+        (2, 'Je převzata'),
+        (3, 'Je ukončena'),
+    )
     LESSONS_CHOICES =(
         (0, '1 lekce'),
         (1, '2-4 lekce'),
@@ -346,14 +367,16 @@ class Demand(models.Model):
         (2, '3 studenti'),
         (3, '4 a více studentů'),
     )
+    demand_type     = models.CharField('Typ poptávky', max_length=1, default='f', choices=DEMAND_TYPE_CHOICES, editable=False)
+    status          = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
     first_name      = models.CharField('Jméno', max_length=100)
     last_name       = models.CharField('Príjmení', max_length=100)
     email           = models.EmailField('E-mail')
     towns           = models.ManyToManyField(Town, verbose_name='Město')
     subject         = models.ForeignKey(Subject, on_delete=models.PROTECT, verbose_name='Předmět')
     level           = models.ForeignKey(Level, on_delete=models.PROTECT, verbose_name='Úroveň')
-    date_posted     = models.DateTimeField('Datum Vložení', auto_now_add=True)
-    date_updated    = models.DateTimeField('Datum poslední úpravy', auto_now=True)
+    date_posted     = models.DateTimeField('Vloženo', auto_now_add=True)
+    date_updated    = models.DateTimeField('Aktualizováno', auto_now=True)
     lessons         = models.PositiveSmallIntegerField('Počet lekcí', default=1, choices=LESSONS_CHOICES)
     students        = models.PositiveSmallIntegerField('Počet studentů', default=0, choices=STUDENTS_CHOICES)
     subject_desript = models.CharField('Popis doučované láky', max_length=300)
@@ -361,21 +384,23 @@ class Demand(models.Model):
     is_taken        = models.BooleanField(default=False)
     slug            = models.CharField('Klíč', max_length=32, unique=True, editable=False)
     discount        = models.SmallIntegerField('Sleva v %', default=0, validators=[ MaxValueValidator(100), MinValueValidator(0) ])
-    is_active       = models.BooleanField('Je aktivní', default=True)
-    visible_for_all = models.BooleanField('Zobratit všem', default=True)
-    visible_for     = models.ManyToManyField(Lector, verbose_name='Zobrazit těmto lektorům', blank=True)
+    targeted_to     = models.ManyToManyField(Lector, verbose_name='Zobrazit těmto lektorům', blank=True, related_name='demand_requiring')
+    taken_by        = models.ForeignKey(Lector, verbose_name='Doučuje lektor', editable=False, null=True, related_name='demand_taken')
 
     def deactivate(self):
-        self.is_active = False
+        self.status = 1
 
     def activate(self):
-        self.is_active = True
+        self.status = 0
+
+    def do_discount(self, rate):
+        self.discount = rate
 
     def is_discounted(self):
         return True if self.discount!=0 else False
 
     def get_charge(self):
-        charge = sets.charge_list[self.students][self.lessons]
+        charge = sets.get_charge_list()[self.students][self.lessons]
         charge -= self.discount * charge
         return  charge
 
@@ -397,7 +422,7 @@ class Demand(models.Model):
                 raise IntegrityError(e.message)
 
     def __unicode__(self):
-        return '{} - {}'.format( self.subject, self.level).strip()
+        return '{} na úrovnni {}'.format( self.subject, self.level).strip()
 
     class Meta:
         verbose_name = "Poptávka"
@@ -446,7 +471,7 @@ class AccountTransaction(models.Model):
     comment         = models.CharField('Komentář', max_length=100, null=True, editable=False)
     bic             = models.CharField('BIC', max_length=11, null=True, editable=False)
     command_id      = models.BigIntegerField('ID pokynu', null=True, editable=False)
-
+    #
     # def save(self, *args, **kwargs):
     #     if self._state.adding:
     #         try:
@@ -465,18 +490,57 @@ class AccountTransaction(models.Model):
 
 
 class CreditTransaction(models.Model):
-    TRANSACTION_TYPES =(
-        ('n', 'neurčeno'),
-        ('c', 'dobytí kreditu'),
+    TRANSACTION_TYPE_CHOICES =(
         ('d', 'Poplatek za převzetí poptávky'),
-        ('r', 'Vrácení kreditu'),
+        ('c', 'Dobytí kreditu'),
+        ('r', 'Vrácení kreditu '),
     )
-    transaction_type= models.CharField('Typ transakce', max_length=1, default='n', choices=TRANSACTION_TYPES, editable=False)
-    datetime        = models.DateTimeField('Datum a čas zaúčtování', default=datetime.datetime.now, editable=False)
+    transaction_type= models.CharField('Typ transakce', max_length=1, default='n', choices=TRANSACTION_TYPE_CHOICES, editable=False)
+    datetime        = models.DateTimeField('Zaúčtováno', auto_now_add=True, editable=False)
     volume          = models.DecimalField('Částka', default=0, editable=False, max_digits=12, decimal_places=2)
     lector          = models.ForeignKey(Lector, verbose_name='Lektor', editable=False, null=False)
-    open_balance    = models.DecimalField('Počáteční stav', default=0, editable=False, max_digits=12, decimal_places=2)
-    close_balance   = models.DecimalField('Konečný stav', default=0, editable=False, max_digits=12, decimal_places=2)
+    open_balance    = models.DecimalField('Počáteční stav', default=0, editable=False, max_digits=12, decimal_places=2, null=False)
+    close_balance   = models.DecimalField('Konečný stav', default=0, editable=False, max_digits=12, decimal_places=2, null=False)
+    account_transaction = models.OneToOneField(AccountTransaction, editable=False, null=True)
+    demand          = models.OneToOneField(Demand, editable=False, null=True)
+    reason          = models.CharField('Důvod vrácení', max_length=100, default='')
+    comment         = models.CharField('Poznámka', max_length=100, default='')
+
+    def set_balance(self):
+        if self.lector_id:
+            self.open_balance = self.lector.credit
+            self.close_balance = self.lector.credit + self.volume
+            # if self.transaction_type == 'd' and self.close_balance < 0:
+            #     raise CreditError
+
+    def transaction_type_is_valid(self, *args, **kwargs):
+        if self.transaction_type == 'd':
+            if self.demand_id and not self.account_transaction_id:
+                return True
+            else:
+                return False
+        elif self.transaction_type == 'c':
+            if self.account_transaction_id and not self.demand_id:
+                return True
+            else:
+                return False
+        elif self.transaction_type == 'r':
+            if self.reason and not self.account_transaction_id and not self.demand_id:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.transaction_type_is_valid():
+            self.set_balance()
+            try:
+                return super(CreditTransaction, self).save(*args, **kwargs)
+            except:
+                pass
+        else:
+            pass
 
     def __unicode__(self):
         return self.transaction_type
@@ -484,32 +548,6 @@ class CreditTransaction(models.Model):
     class Meta:
         verbose_name = 'Pohyb kreditu'
         verbose_name_plural = 'Pohyby kreditu'
-
-
-class CreditTopUp(CreditTransaction):
-    def __init__(self, *args, **kwargs):
-        super(CreditTopUp, self).__init__(*args, **kwargs)
-        self.transaction_type = 'c'
-
-    account_transaction = models.ForeignKey(AccountTransaction, editable=False)
-
-
-class TakenDemand(CreditTransaction):
-    def __init__(self, *args, **kwargs):
-        super(TakenDemand, self).__init__(*args, **kwargs)
-        self.transaction_type = 'd'
-
-    demand = models.ForeignKey(Demand, editable=False, null=True)
-
-
-class CreditReturn(CreditTransaction):
-    def __init__(self, *args, **kwargs):
-        super(TakenDemand, self).__init__(*args, **kwargs)
-        self.transaction_type = 'r'
-
-    reasen  = models.CharField('Důvod vrácení', max_length=100, default='Doučování proběhlo v menším, než předpokládaném rozsahu')
-    comment = models.CharField('Poznámka', max_length=100, default="")
-
 
 @receiver(post_save, sender=User)
 def lector_add(sender, **kwargs):
@@ -527,21 +565,51 @@ def notification_demand_added(sender, **kwargs):
 
 @receiver(post_save, sender=AccountTransaction)
 def account_transaction_added(sender, **kwargs):
+    # only take place if AccountTransaction is just created
     # if kwargs['created']:
-    lector = ""
+    lector = None
     try:
         lector = Lector.objects.get( pk=kwargs['instance'].variable_symbol )
     except:
         pass
     if lector:
+        # if there is a Lector with pk = variable_symbol
         with transaction.atomic():
-            CreditTopUp(
-                account_transaction=kwargs['instance'],
-                volume=kwargs['instance'].volume,
-                lector=lector,
-                open_balance=lector.credit,
-                close_balance=lector.credit + kwargs['instance'].volume,).save()
-            lector.credit+=kwargs['instance'].volume
-            lector.save()
+            # create appropriate CreditTransaction
+            CreditTransaction.objects.create(
+                transaction_type = 'c',
+                volume = kwargs['instance'].volume,
+                lector = lector,
+                account_transaction = kwargs['instance'],
+                comment = kwargs['instance'].message,
+            )
+    else:
+        # check possibly wrong variable_symbol here!
+        pass
+    # else:
+    #     pass
+
+@receiver(post_save, sender=CreditTransaction)
+def credit_transaction_added(sender, **kwargs):
+    # only take place if CreditTransaction is just created
+    if kwargs['created']:
+        self = kwargs['instance']
+        if self.transaction_type == 'd':
+            # if charge for demand
+            self.lector.credit = self.close_balance
+            self.lector.save()
+            self.demand.status = 2
+            self.demand.taken_by = self.lector
+            self.demand.save()
+        elif self.transaction_type == 'c':
+            # if credit top-up
+            self.lector.credit = self.close_balance
+            self.lector.save()
+        elif self.transaction_type == 'r':
+            # if return credit
+            self.lector.credit = self.close_balance
+            self.lector.save()
+        else:
+            pass
     else:
         pass

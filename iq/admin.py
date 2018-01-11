@@ -67,16 +67,24 @@ class AccountTransactionAdmin(admin.ModelAdmin):
     list_display = ('transaction_id','volume','autor','date')
     # readonly_fields += ('volume','variable_symbol')
 
-class CreditTopUpAdmin(admin.ModelAdmin):
-    readonly_fields = ('transaction_type','account_transaction', 'datetime', 'volume', 'lector', 'open_balance', 'close_balance')
-
-
-class TakenDemandAdmin(admin.ModelAdmin):
-    readonly_fields = ('transaction_type','demand', 'datetime', 'volume', 'lector', 'open_balance', 'close_balance')
-
+class CreditTransactionAdmin(admin.ModelAdmin):
+    readonly_fields = (
+        'transaction_type',
+        'account_transaction',
+        'datetime',
+        'volume',
+        'lector',
+        'open_balance',
+        'close_balance',
+        'datetime',
+        'demand',
+        'reason',
+        'comment',
+    )
 
 class DemandAdmin(admin.ModelAdmin):
     readonly_fields = ('date_posted','date_updated')
+    filter_horizontal = ('towns',)
 
 
 admin.site.register(Town, TownAdmin)
@@ -87,6 +95,6 @@ admin.site.register(Settings)
 admin.site.register(AccountRequest)
 admin.site.register(Demand, DemandAdmin)
 admin.site.register(Holyday)
-admin.site.register(CreditTopUp, CreditTopUpAdmin)
 admin.site.register(Lector, LectorAdmin)
 admin.site.register(AccountTransaction, AccountTransactionAdmin)
+admin.site.register(CreditTransaction, CreditTransactionAdmin)
