@@ -183,7 +183,7 @@ class DemandDetailView(views.generic.edit.FormView):
     form_class = forms.TakeDemandForm
 
     def get_context_data(self, **kwargs):
-        context = {}
+        context = super(DemandDetailView, self).get_context_data()
         context['demand'] = get_object_or_404(self.model, pk=kwargs['pk'] )
         if not context['demand'].status:
             # only if demand is active
@@ -195,20 +195,19 @@ class DemandDetailView(views.generic.edit.FormView):
 
     def get(self, request, *args, **kwargs):
         check_account()
-        self.content = self.get_context_data(**kwargs)
-        return self.render_to_response(self.content)
+        return self.render_to_response(self.get_context_data(**kwargs))
 
     def post(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
-        if context['active']:
-            if context['not_able']:
-                self.success_url = '/'
-                # self.success_url = '/poptavka/{}/'.format(self.object.pk)
+        self.context = self.get_context_data(**kwargs)
+        if self.context['active']:
+            if self.context['not_able']:
+                return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
             else:
-                self.success_url = '/vzit-poptavku/{}/'.format(context['demand'].pk)
-            return super(DemandDetailView, self).post(request, *args, **kwargs)
+                self.success_url = '/vzit-poptavku/{}/'.format( kwargs['pk'] )
+                return super(DemandDetailView, self).post(request, *args, **kwargs)
         else:
-            pass# do nothig on post to non active demand
+            return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
+
 
 class DemandUpdateView(views.generic.edit.UpdateView):
     model = models.Demand
@@ -221,39 +220,59 @@ def demand_updated_view(request):
 
 class TakeDemandView(views.generic.edit.CreateView):
     template_name = 'iq/take_demand_form.html'
+    success_url = '/moje-doucovani/'
     model = models.CreditTransaction
     object = None
     fields = []
 
     def get_context_data(self, *args, **kwargs):
         context = super(TakeDemandView, self).get_context_data()
-        context['demand'] = models.Demand.objects.get(pk=kwargs['pk'])
-        context['lector'] = self.request.user.lector
-        context['not_able'] = context['lector'].take_ability_check( context['demand'] )
+        context['demand'] = get_object_or_404(models.Demand, pk=kwargs['pk'] )
+        if not context['demand'].status:
+            # only if demand is active
+            context['active'] = True
+            context['lector'] = self.request.user.lector
+            context['not_able'] = context['lector'].take_ability_check( context['demand'] )
+        else:
+            context['active'] = False
         return context
 
     def form_valid(self, form):
-        if self.context['not_able']:
-            self.success_url = '/poptavka/{}/'.format(self.object.pk)
-        else:
-            self.model.objects.create(
-                transaction_type = 'd',
-                demand = self.context['demand'],
-                volume = - self.context['demand'].get_charge(),
-                lector = self.context['lector'],
-            )
-            self.success_url = '/moje-doucovani/'
+        # transaction.atomic is wraped by try
+        # HttpResponseRedirect causes __exit__
+        try:
+            with transaction.atomic():
+                self.model.objects.create(
+                    transaction_type = 'd',
+                    demand = self.context['demand'],
+                    volume = - self.context['demand'].get_charge(),
+                    lector = self.context['lector'],
+                )
+        except IntegrityError as err:
+            raise IntegrityError(err.message)
         return HttpResponseRedirect(self.success_url)
 
     def get(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
         self.object = None
-        return self.render_to_response(self.get_context_data(**kwargs))
+        if self.context['active']:
+            if self.context['not_able']:
+                return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
+            else:
+                return self.render_to_response(self.context)
+        else:
+            return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-        return super(TakeDemandView, self).post(request, *args, **kwargs)
-
+        if self.context['active']:
+            if self.context['not_able']:
+                return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
+            else:
+                self.success_url = '/moje-doucovani/'
+                return super(TakeDemandView, self).post(request, *args, **kwargs)
+        else:
+            return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
 class LectorListView(views.generic.list.ListView):
     model = models.Lector
