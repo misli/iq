@@ -6,7 +6,6 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db.models.signals import post_save
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.dispatch import receiver
-from autoslug import AutoSlugField
 from django.conf import settings
 from django.core.mail import send_mail
 import datetime
@@ -182,10 +181,14 @@ class Town(models.Model):
         ('Z', 'Zlínský kraj'),
         ('J', 'Kraj Vysočina'),
     )
-    name        = models.CharField(max_length=33)
-    slug        = AutoSlugField(populate_from='name')
-    county      = models.CharField(max_length=1, choices=COUNTY_CHOICES)
+    name        = models.CharField('Název', max_length=33, unique=True)
+    slug        = models.SlugField('Slug', max_length=33, unique=True, editable=False)
+    county      = models.CharField('Kraj', max_length=1, choices=COUNTY_CHOICES)
     countyCapital = models.BooleanField()
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Town, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return self.name
@@ -196,9 +199,13 @@ class Town(models.Model):
 
 
 class Category(models.Model):
-    name        = models.CharField('název', max_length=50)
-    slug        = AutoSlugField(null=False, populate_from='name')
-    description  = models.TextField('popis', max_length=500)
+    name        = models.CharField('Název', max_length=50, unique=True)
+    slug        = models.SlugField('Slug', max_length=50, unique=True, editable=False)
+    description  = models.TextField('Popis', max_length=500)
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Category, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Kategorie předmětů"
@@ -220,11 +227,15 @@ class Scheme(models.Model):
 
 
 class Subject(models.Model):
-    name        = models.CharField('název', max_length=50)
-    slug        = AutoSlugField(null=False, populate_from='name')
-    description  = models.TextField('popis', max_length=500)
+    name        = models.CharField('Název', max_length=50, unique=True)
+    slug        = models.SlugField('Slug', max_length=50, unique=True, editable=False)
+    description = models.TextField('Popis', max_length=800)
     category    = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name = 'Kategorie')
-    scheme      = models.ForeignKey(Scheme, verbose_name = 'systém úrovní')
+    scheme      = models.ForeignKey(Scheme, verbose_name = 'Systém úrovní')
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Subject, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return self.name

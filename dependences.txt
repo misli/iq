@@ -1,4 +1,3 @@
 django-verified-email-field
-django-autoslug
 django-formtools
 requests
