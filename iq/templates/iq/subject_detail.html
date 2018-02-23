@@ -1,7 +1,7 @@
 {% extends 'iq/base.html' %}
 
 {% block content %}
-<p><a href="/predmety/">kategorie</a> / <a href="/predmety/{{ subject.category|slugify }}">{{ subject.category }}</a> / {{ subject.name }} :</p>
+<p><a href="/predmety/">kategorie</a> / <a href="/predmety/{{ subject.category.slug }}">{{ subject.category }}</a> / {{ subject.name }} :</p>
 
 <p>{{subject.description}}</p>
 <ul>

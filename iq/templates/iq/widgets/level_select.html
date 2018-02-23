@@ -1,0 +1,64 @@
+<select name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>{% for group_name, group_choices, group_index in widget.optgroups %}{% if group_name %}
+  <optgroup label="{{ group_name }}">{% endif %}{% for option in group_choices %}
+  {% include option.template_name with widget=option %}{% endfor %}{% if group_name %}
+  </optgroup>{% endif %}{% endfor %}
+</select>
+<script>
+var levels = {{ widget.level_list|safe }};
+var subjects = {{ widget.subject_list|safe }};
+
+$('#id_subject').change(function(event) {
+  subject = event.target.value;
+  scheme = subjects[subject];
+  if($('#id_level').val()){
+    order = levels.find( l => l.id == $('#id_level').val() )['order'];
+  };
+  $('#id_level').html('');
+  for(level in levels){
+    if ( levels[level]['scheme'] == scheme ){
+      if ( order && levels[level]['order'] == order){
+        $('#id_level').append('<option value="'+levels[level]['id']+'" selected>'+levels[level]['name']+'</option>');
+      } else {
+        $('#id_level').append('<option value="'+levels[level]['id']+'">'+levels[level]['name']+'</option>');
+      }
+    }
+  };
+}).change();
+
+$('#id_0-subject').change(function(event) {
+    subject = event.target.value;
+    scheme = subjects[subject];
+    if($('#id_0-level').val()){
+      order = levels.find( l => l.id == $('#id_0-level').val() )['order'];
+    };
+    $('#id_0-level').html('');
+    for(level in levels){
+      if ( levels[level]['scheme'] == scheme ){
+        if ( order && levels[level]['order'] == order){
+          $('#id_0-level').append('<option value="'+levels[level]['id']+'" selected>'+levels[level]['name']+'</option>');
+        } else {
+          $('#id_0-level').append('<option value="'+levels[level]['id']+'">'+levels[level]['name']+'</option>');
+        }
+      }
+    };
+}).change();
+
+$('[id^=id_teach_set-][id$=-subject]').change(function(event) {
+  teach = parseInt(event.target.id.replace('id_teach_set-','').replace('-subject', ''));
+  subject = parseInt(event.target.value);
+  scheme = subjects[subject];
+  if($('#id_teach_set-'+teach+'-level').val()){
+    order = levels.find( l => l.id == $('#id_teach_set-'+teach+'-level').val() )['order'];
+  };
+  $('#id_teach_set-'+teach+'-level').html('');
+  for(level in levels){
+    if ( levels[level]['scheme'] == scheme ){
+      if ( order && levels[level]['order'] == order){
+        $('#id_teach_set-'+teach+'-level').append('<option value="'+levels[level]['id']+'" selected>'+levels[level]['name']+'</option>');
+      } else {
+        $('#id_teach_set-'+teach+'-level').append('<option value="'+levels[level]['id']+'">'+levels[level]['name']+'</option>');
+      }
+    }
+  };
+}).change();
+</script>

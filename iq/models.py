@@ -30,7 +30,20 @@ class TownSelectWidget(SelectMultiple):
         css = {
             'all': ('css/town_select_widget.css',)
         }
-        # js = ('js/town_select_widget.js',)
+
+
+class LevelSelectWidget(Select):
+    template_name = 'iq/widgets/level_select.html'
+
+    def get_context(self, name, value, attrs):
+        context = super(LevelSelectWidget, self).get_context(name, value, attrs)
+        levels = Level.objects.all()
+        subjects = Subject.objects.all()
+        level_list = json.dumps([{ 'id': str(l.id), 'name' : l.name, 'order' : l.order, 'scheme' : str(l.scheme.id)} for l in levels ])
+        subject_list = json.dumps({ str(s.id) : str(s.scheme.id) for s in subjects })
+        context['widget']['level_list'] = level_list
+        context['widget']['subject_list'] = subject_list
+        return context
 
 
 class Settings(models.Model):
@@ -158,7 +171,7 @@ class User(AbstractUser):
     first_name = None
     last_name = None
     # email = VerifiedEmailField('e-mail', unique=True)
-    email = models.EmailField('e-mail', unique=True)
+    email = models.EmailField('E-mail', unique=True)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -216,7 +229,7 @@ class Category(models.Model):
 
 
 class Scheme(models.Model):
-    name = models.CharField('název', max_length=50)
+    name = models.CharField('název', max_length=50, unique=True)
 
     def __unicode__(self):
         return self.name
@@ -246,9 +259,9 @@ class Subject(models.Model):
 
 
 class Level(models.Model):
-    name    = models.CharField('název úrovně', max_length=50)
-    order   = models.PositiveSmallIntegerField('pořadí')
-    scheme  = models.ForeignKey(Scheme, on_delete=models.PROTECT, verbose_name = 'systém úrovní')
+    name    = models.CharField('Název úrovně', max_length=50)
+    order   = models.PositiveSmallIntegerField('Pořadí')
+    scheme  = models.ForeignKey(Scheme, on_delete=models.PROTECT, verbose_name = 'Systém úrovní')
 
     def __unicode__(self):
             return self.name
@@ -378,7 +391,7 @@ class Demand(models.Model):
         (2, '3 studenti'),
         (3, '4 a více studentů'),
     )
-    demand_type     = models.CharField('Typ poptávky', max_length=1, default='f', choices=DEMAND_TYPE_CHOICES, editable=False)
+    demand_type     = models.CharField('Typ poptávky', max_length=1, default='f', choices=DEMAND_TYPE_CHOICES)
     status          = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
     first_name      = models.CharField('Jméno', max_length=100)
     last_name       = models.CharField('Príjmení', max_length=100)
@@ -412,7 +425,7 @@ class Demand(models.Model):
 
     def get_charge(self):
         charge = sets.get_charge_list()[self.students][self.lessons]
-        charge -= self.discount * charge
+        charge -= self.discount * charge / 100
         return  charge
 
     def save(self, *args, **kwargs):

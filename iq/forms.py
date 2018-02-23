@@ -18,6 +18,8 @@ class RegistrationForm(UserCreationForm):
 
 
 class DemandSessionWizardForm1(forms.ModelForm):
+    subject = forms.ModelChoiceField(queryset = Subject.objects.all(), label='Předmět', empty_label=None)
+    level = forms.ModelChoiceField(queryset = Level.objects.all(), label='Úroveň', empty_label=None, widget=LevelSelectWidget)
     class Meta:
         model = Demand
         fields = ['subject','level', 'towns', 'subject_desript']
@@ -39,10 +41,13 @@ class DemandSessionWizardForm3(forms.ModelForm):
         fields = ['first_name', 'last_name', 'email',]
 
 
-TeachFormSet = inlineformset_factory(Lector, Teach, fields=('subject', 'level', 'price'), extra=1)
 
 
 class LectorUpdateForm(forms.ModelForm):
+TeachFormSet = inlineformset_factory(Lector, Teach,
+                            fields=('subject', 'level', 'price'),
+                            widgets={'level': LevelSelectWidget }, extra=1)
+
     class Meta:
         model = Lector
         fields = ['titles_before','first_name','last_name','titles_after','towns']
@@ -56,5 +61,6 @@ class DemandUpdateForm(forms.ModelForm):
         model = Demand
         fields = ['subject','level', 'towns', 'lessons', 'students']
         widgets = {
-            'towns':TownSelectWidget
+            'level': LevelSelectWidget,
+            'towns': TownSelectWidget
         }
