@@ -520,18 +520,18 @@ class Demand(models.Model):
 
 
 class AccountRequest(models.Model):
-    account_id      = models.CharField("Číslo účtu", max_length=10)
+    account_id      = models.DecimalField("Číslo účtu", max_digits=10, decimal_places=0)
     # bank_id         = models.CharField("Číslo banky", max_length=4)
     # currency        = models.CharField("Měna", max_length=3)
     # iban            = models.CharField("IBAN", max_length=34)
     # bic             = models.CharField("BIC", max_length=11)
-    opening_balance = models.DecimalField("Počáteční satv", max_digits=12, decimal_places=2)
-    closing_balance = models.DecimalField("Konečný satv", max_digits=12, decimal_places=2)
+    opening_balance = models.DecimalField("Počáteční satv", max_digits=18, decimal_places=2)
+    closing_balance = models.DecimalField("Konečný satv", max_digits=18, decimal_places=2)
     date_start      = models.DateField("Datum od")
     date_end        = models.DateField("Datum do")
-    id_to           = models.BigIntegerField("Do id pohybu", null=True)
-    id_from         = models.BigIntegerField("Od id pohybu", null=True)
-    id_last_download = models.BigIntegerField("Id posledního úspěšně staženého pohybu", null=True)
+    id_to           = models.DecimalField("Do id pohybu", max_digits=12, decimal_places=0, null=True)
+    id_from         = models.DecimalField("Od id pohybu", max_digits=12, decimal_places=0, null=True)
+    id_last_download = models.DecimalField("Id posledního úspěšně staženého pohybu", max_digits=12, decimal_places=0, null=True)
 
     def __unicode__(self):
         return str(self.date_end)
@@ -542,25 +542,25 @@ class AccountRequest(models.Model):
 
 
 class AccountTransaction(models.Model):
-    transaction_id  = models.BigIntegerField('ID pohybu', unique=True, editable=False)
+    transaction_id  = models.DecimalField('ID pohybu', max_digits=12, decimal_places=0, unique=True, editable=False)
     date            = models.DateField('Datum', editable=False)
-    volume          = models.DecimalField('Objem', max_digits=12, decimal_places=2)# editable=False
+    volume          = models.DecimalField('Objem', max_digits=18, decimal_places=2)# editable=False
     currency        = models.CharField('Měna', max_length=3, editable=False)
-    counterparty    = models.CharField('Protiúčet', max_length=17, null=True, editable=False)
-    counterparty_name = models.CharField('Název protiúčetu', max_length=50, null=True, editable=False)
-    bank_code       = models.CharField('Kód banky protiúčtu', max_length=4, null=True, editable=False)
-    bank_name       = models.CharField('Název banky protiúčtu', max_length=50, null=True, editable=False)
-    constant_symbol = models.CharField('Konstantní symbol', max_length=4, null=True, editable=False)
-    variable_symbol = models.BigIntegerField('Variabilní symbol', null=True)# editable=False
-    specific_symbol = models.BigIntegerField('Specifický symbol', null=True, editable=False)
-    user_identification = models.CharField('Uživaletská identifikace', max_length=100, null=True, editable=False)
-    message         = models.CharField('Zpráva pro příjemce', max_length=100, null=True, editable=False)
-    transaction_type = models.CharField('Typ pohybu', max_length=100, null=True, editable=False)
+    counterparty    = models.CharField('Protiúčet', max_length=255, null=True, editable=False)
+    counterparty_name = models.CharField('Název protiúčetu', max_length=255, null=True, editable=False)
+    bank_code       = models.CharField('Kód banky protiúčtu', max_length=10, null=True, editable=False)
+    bank_name       = models.CharField('Název banky protiúčtu', max_length=255, null=True, editable=False)
+    constant_symbol = models.DecimalField('Konstantní symbol', max_digits=4, decimal_places=0, null=True, editable=False)
+    variable_symbol = models.DecimalField('Variabilní symbol', max_digits=10, decimal_places=0, null=True)# editable=False
+    specific_symbol = models.DecimalField('Specifický symbol', max_digits=10, decimal_places=0, null=True, editable=False)
+    user_identification = models.CharField('Uživaletská identifikace', max_length=255, null=True, editable=False)
+    message         = models.CharField('Zpráva pro příjemce', max_length=140, null=True, editable=False)
+    transaction_type = models.CharField('Typ pohybu', max_length=255, null=True, editable=False)
     autor           = models.CharField('Provedl', max_length=50, null=True, editable=False)
-    specification   = models.CharField('Upřesnění', max_length=100, null=True, editable=False)
-    comment         = models.CharField('Komentář', max_length=100, null=True, editable=False)
+    specification   = models.CharField('Upřesnění', max_length=255, null=True, editable=False)
+    comment         = models.CharField('Komentář', max_length=255, null=True, editable=False)
     bic             = models.CharField('BIC', max_length=11, null=True, editable=False)
-    command_id      = models.BigIntegerField('ID pokynu', null=True, editable=False)
+    command_id      = models.DecimalField('ID pokynu', max_digits=12, decimal_places=0, null=True, editable=False)
     #
     # def save(self, *args, **kwargs):
     #     if self._state.adding:
