@@ -56,6 +56,7 @@ TeachFormSet = inlineformset_factory(Lector, Teach,
                             fields=('subject', 'level', 'price'),
                             widgets={'level': LevelSelectWidget }, extra=1)
 
+
 class LectorProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Lector
@@ -63,6 +64,7 @@ class LectorProfileUpdateForm(forms.ModelForm):
         widgets = {
             'towns':TownSelectWidget
         }
+
 
 class LectorSettingsUpdateForm(forms.ModelForm):
     class Meta:

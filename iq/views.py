@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
+import json
+import requests
+from datetime import datetime, timedelta
+
+from formtools.wizard.views import SessionWizardView
+
 from django import views
 from django.db import transaction
-from django.urls import reverse
 from django.conf import settings
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
 from django.core import serializers
-from formtools.wizard.views import SessionWizardView
-import requests
-import json
+from django.http import Http404, HttpResponseRedirect, HttpResponse
+from django.shortcuts import render, get_object_or_404
+from django.utils.decorators import method_decorator
+from django.urls import reverse
 
-from . import models, forms
-from django.http import HttpResponseRedirect, HttpResponse
-from datetime import datetime, timedelta
+import models, forms
 
 last_account_request = datetime.now() - timedelta(seconds=settings.FIO_API_MIN_REQUEST_INTERVAL)
 

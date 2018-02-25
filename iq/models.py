@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from django.utils.crypto import get_random_string
-from django.db import models, transaction, IntegrityError
-from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.db.models.signals import post_save
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.dispatch import receiver
-from django.conf import settings
-from django.core.mail import send_mail
-import datetime
+
 import json
-from django.forms.widgets import SelectMultiple
+
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.mail import send_mail
+from django.db import models, transaction, IntegrityError
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.forms.widgets import Select, SelectMultiple
+from django.utils.crypto import get_random_string
+from django.utils.text import slugify
 
 
 class TownSelectWidget(SelectMultiple):
