@@ -29,6 +29,7 @@ body > *{
   border-bottom: solid 5px #CABB9F;
 }
 #content {
+  padding-bottom: 100px;
 }
 #footer {
   position: fixed;
@@ -36,4 +37,10 @@ body > *{
   width: 100%;
   background-color: #CABB9F;
   text-align: center;
+}
+input:required {
+  border: solid 2px #7A6958;
+}
+.profilePhoto {
+  height: 200px;
 }

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.conf.urls import url, include
+from django.conf import settings
+from django.conf.urls import url, include, static
+from django.conf.urls.static import static
+
 from . import views
 
 urlpatterns = [
@@ -13,7 +16,9 @@ urlpatterns = [
     url(r'^verified-email-field/', include('verified_email_field.urls')),
     url(r'^lektori/$', views.LectorListView.as_view()),
     url(r'^lektor/(?P<pk>[0-9]+)/$', views.LectorDetailView.as_view()),
-    url(r'^muj-profil/$', views.LectorUpdateView.as_view()),
+    url(r'^muj-profil/$', views.LectorProfileUpdateView.as_view()),
+    url(r'^moje-nastaveni/$', views.LectorSettingsUpdateView.as_view()),
+    url(r'^dobit-kredit/$', views.credit_topup_view),
     url(r'^predmety/$', views.CategoryListView.as_view()),
     url(r'^predmety/(?P<slug>[-\w]+)/$', views.SubjectListView.as_view()),
     url(r'^predmet/(?P<slug>[-\w]+)/$', views.SubjectDetailView.as_view()),
@@ -26,3 +31,6 @@ urlpatterns = [
     url(r'^poptavka-zmenena/', views.demand_updated_view),
     url(r'^$', views.home),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

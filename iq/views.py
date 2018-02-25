@@ -134,12 +134,14 @@ class SubjectDetailView(views.generic.detail.DetailView):
 
 
 class DemandSessionWizardView(SessionWizardView):
-    # formulář přidání nové poptávky má být ze zadání na tři kroky
     template_name = 'iq/demand_create.html'
-    form_list   = [forms.DemandSessionWizardForm1, forms.DemandSessionWizardForm2, forms.DemandSessionWizardForm3]
+    form_list = [forms.DemandSessionWizardForm1, forms.DemandSessionWizardForm2,
+                forms.DemandSessionWizardForm3, forms.DemandSessionWizardForm4]
+
     def done(self, form_list, **kwargs):
         form = self.get_all_cleaned_data()
-        d = models.Demand.objects.create(
+        demand = models.Demand.objects.create(
+            demand_type = form['demand_type'],
             email = form['email'],
             first_name = form['first_name'],
             last_name = form['last_name'],
@@ -150,8 +152,8 @@ class DemandSessionWizardView(SessionWizardView):
             subject_desript = form['subject_desript'],
             time_desript = form['time_desript'],
         )
-        for t in form['towns']:
-            d.towns.add(t)
+        for town in form['towns']:
+            demand.towns.add(town)
         return render(self.request, 'iq/demand_review.html', {
             'form_list': form_list,
         })
@@ -218,6 +220,7 @@ class DemandUpdateView(views.generic.edit.UpdateView):
 def demand_updated_view(request):
     return render(request, 'iq/demand_updated.html')
 
+
 class TakeDemandView(views.generic.edit.CreateView):
     template_name = 'iq/take_demand_form.html'
     success_url = '/moje-doucovani/'
@@ -274,6 +277,7 @@ class TakeDemandView(views.generic.edit.CreateView):
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
+
 class LectorListView(views.generic.list.ListView):
     model = models.Lector
 
@@ -286,11 +290,18 @@ class LectorDetailView(views.generic.detail.DetailView):
         context['teach_list'] = models.Teach.objects.filter(lector=context['object'].id)
         return context
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.has_complete_profile():
+            return super(LectorDetailView, self).get(request, *args, **kwargs)
+        else:
+            raise Http404()
+
 @method_decorator(login_required, name='dispatch')
-class LectorUpdateView(views.generic.edit.UpdateView):
+class LectorProfileUpdateView(views.generic.edit.UpdateView):
     model = models.Lector
-    form_class = forms.LectorUpdateForm
-    template_name_suffix = '_edit'
+    form_class = forms.LectorProfileUpdateForm
+    template_name_suffix = '_profile_update'
 
     def get_object(self, queryset=None):
         return self.request.user.lector
@@ -298,14 +309,14 @@ class LectorUpdateView(views.generic.edit.UpdateView):
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         self.teach_formset = forms.TeachFormSet(instance=self.object)
-        return super(LectorUpdateView, self).get(request, *args, **kwargs)
+        return super(LectorProfileUpdateView, self).get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         self.success_url = '/lektor/{}/'.format(self.object.pk)
         self.teach_formset = forms.TeachFormSet(self.request.POST, instance=self.object)
         self.teach_formset.full_clean()
-        return super(LectorUpdateView, self).post(request, *args, **kwargs)
+        return super(LectorProfileUpdateView, self).post(request, *args, **kwargs)
 
     def form_valid(self, form):
           # context = self.get_context_data()
@@ -319,9 +330,32 @@ class LectorUpdateView(views.generic.edit.UpdateView):
               return self.render_to_response(self.get_context_data(form=form))
 
 
+@method_decorator(login_required, name='dispatch')
+class LectorSettingsUpdateView(views.generic.edit.UpdateView):
+    model = models.Lector
+    form_class = forms.LectorSettingsUpdateForm
+    template_name_suffix = '_settings_update'
+
+    def get_object(self, queryset=None):
+        return self.request.user.lector
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super(LectorSettingsUpdateView, self).get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.success_url = '/lektor/{}/'.format(self.object.pk)
+        return super(LectorSettingsUpdateView, self).post(request, *args, **kwargs)
+
+
 def home(request):
     return render(request, 'iq/home.html', {})
 
 def relog(request):
     logout(request)
     return HttpResponseRedirect('/prihlaseni/')
+
+@login_required
+def credit_topup_view(request):
+    return render(request, 'iq/credit_topup.html', {'account_number':settings.ACCOUNT_NUMBER})

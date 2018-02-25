@@ -1,0 +1,69 @@
+{% extends 'iq/base.html' %}
+{% load staticfiles %}
+
+{% block head %}
+    {{ form.media }}
+    <script src="{% static 'js/croppie.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/croppie.css' %}">
+{% endblock %}
+
+{% block content %}
+    <b>můj profil | </b><a href="/moje-doucovani/"><b>moje doučování</b></a> | <a href="/moje-nastaveni/"><b>moje nastavení</b></a></br>
+    <div id="main-cropper"></div>
+    <div id="res"></div>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="fieldWrapper">
+            {{ field.errors }}
+            <label for="{{ field.id_for_label }}" {% if field.is_required %}style="font-weight:bold;"{% endif %}>{{ field.label }} :</label>
+            {{ field }}
+            {% if field.help_text %}
+            <p class="help">{{ field.help_text|safe }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <table>
+        {{ view.teach_formset.management_form }}
+        {% for form in view.teach_formset.forms %}
+          {{ form }}
+        {% endfor %}
+        </table>
+        <input id="submit" type="submit" value="Uložit změny" />
+    </form>
+    <script>
+var basic = $('#main-cropper').croppie({
+    viewport: { width: 180, height: 240 },
+    boundary: { width: 240, height: 320 },
+    showZoomer: false,
+    {% if lector.photo %}url: '{{ lector.photo.url }}'{% endif %}
+});
+
+function readFile(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+
+    reader.onload = function (e) {
+      $('#main-cropper').croppie('bind', {
+        url: e.target.result
+      });
+      $('.actionDone').toggle();
+      $('.actionUpload').toggle();
+    }
+
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+$('#id_photo').on('change', function () { readFile(this); });
+$('label').mousedown(function(){
+  console.log($('#main-cropper').croppie('result',{}));
+  $('#res').append( $('#main-cropper').croppie('result',{}) );
+});
+$('.actionDone').on('click', function(){
+  $('.actionDone').toggle();
+  $('.actionUpload').toggle();
+})
+    </script>
+
+{% endblock %}

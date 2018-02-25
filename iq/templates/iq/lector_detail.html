@@ -9,6 +9,9 @@
     <a href="/muj-profil/">upravit</a>
 {% endif %}
   {% if lector.has_complete_profile %}
+    {% if lector.photo %}
+    <img src="{{ lector.photo.url }}" class="profilePhoto">
+    {% endif %}
     <h2>{{ lector }}</h2>
     <p>{{ lector.intro }}
     <h4>předměty, které doučuje</h4>

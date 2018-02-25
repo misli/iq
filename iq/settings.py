@@ -26,6 +26,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'au90-vdp+=)k8ib&zz&b_oo(mbc@%i77iwy(z_gnuu0db2_-u#'
 
 FIO_API_TOKEN = '<token>'
+# bank account number
+ACCOUNT_NUMBER = '1234567890/2010'
 # interval in seconds
 FIO_API_MIN_REQUEST_INTERVAL = 30
 
@@ -70,6 +72,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.media',
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
@@ -133,5 +136,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/poptavky/'
 LOGIN_URL = '/prihlaseni/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

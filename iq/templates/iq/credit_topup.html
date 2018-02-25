@@ -1,0 +1,13 @@
+{% extends 'iq/base.html' %}
+
+{% block head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+    <a href="/muj-profil/"><b>můj profil</b></a> | <a href="/moje-doucovani/"><b>moje doučování</b></a> | <a href="/moje-nastaveni/"><b>moje nastavení</b></a></br>
+    <p>Kredit můžete doplnit bankovním převodem</p>
+    <p>Číslo účtu: {{ account_number }}</p>
+    <p>Variabilní symbol: {{ request.user.lector.variable_symbol }}</p>
+    <p>Brzy pro Vás připravíme platbu kartou online</p>
+{% endblock %}

@@ -23,3 +23,6 @@
 .focused {
   fill: #A48974;
 }
+svg {
+  display: inline;
+}

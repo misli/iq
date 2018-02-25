@@ -1,0 +1,24 @@
+{% extends 'iq/base.html' %}
+
+{% block head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+    <a href="/muj-profil/"><b>můj profil</b></a> | <a href="/moje-doucovani/"><b>moje doučování</b></a><b> | moje nastavení</b></br>
+    <p class="help">Kredit: {{ request.user.lector.credit }} <a href="/dobit-kredit/"><button type="button">dobít kredit</button></a></p>
+    <form action="" method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="fieldWrapper">
+            {{ field.errors }}
+            <label for="{{ field.id_for_label }}" {% if field.is_required %}style="font-weight:bold;"{% endif %}>{{ field.label }} :</label>
+            {{ field }}
+            {% if field.help_text %}
+            <p class="help">{{ field.help_text|safe }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <input type="submit" value="Uložit změny" />
+    </form>
+{% endblock %}

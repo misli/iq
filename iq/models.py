@@ -19,7 +19,7 @@ class TownSelectWidget(SelectMultiple):
     def get_context(self, name, value, attrs):
         context = super(TownSelectWidget, self).get_context(name, value, attrs)
         towns = Town.objects.all().order_by('name')
-        town_list = json.dumps([ [  t.pk, t.name, t.county, ] for t in towns ])
+        town_list = json.dumps([ [ t.pk, t.name, t.county, ] for t in towns ])
         context['widget']['town_list'] = town_list
         context['widget']['attrs']['id'] = 'select_towns'
         if self.allow_multiple_selected:
@@ -81,6 +81,7 @@ class Settings(models.Model):
             [self.charge3x1, self.charge3x2, self.charge3x5, self.charge3x10],
             [self.charge4x1, self.charge4x2, self.charge4x5, self.charge4x10],
         ]
+
     def notify_new_demand(self, demand):
         lectors = Lector.objects.all()
         to_all = []
@@ -279,18 +280,60 @@ class LectorManager(models.Manager):
         return super(LectorManager, self).get_queryset().filter(user__is_active=True)
 
 
+def user_directory_path(instance, filename):
+    return 'lector_{0}/{1}'.format(instance.user.id, filename)
+
 class Lector(models.Model):
+    SEX_CHOICES = (
+        ('n', 'Neřeknu'),
+        ('f', 'Žena'),
+        ('m', 'Muž'),
+    )
+    NOTICE_CHOICES  = (
+        (0,'vůbec ne'),
+        (1,'e-mail denní přehled'),
+        (2,'e-mail ihned'),
+        (3,'e-mail ihned + denní přehled'),
+        (4,'sms ihned'),
+        (5,'sms ihned + e-mail ihned'),
+        (6,'sms ihned + e-mail denní přehled'),
+    )
     user            = models.OneToOneField(settings.AUTH_USER_MODEL, related_name='lector', on_delete=models.PROTECT, unique=True)
     titles_before   = models.CharField('Tituly před jménem', max_length=20, blank=True, null=True)
     first_name      = models.CharField('Křestní jméno', max_length=20)
     last_name       = models.CharField('Příjmení', max_length=20)
     titles_after    = models.CharField('Tituly za jménem', max_length=20, blank=True, null=True)
     intro           = models.CharField('O mně', max_length=200, default="Umím toho hodně a rád Vás to naučím.", blank=True, null=True)
+    cv              = models.FileField(verbose_name='Životopis',upload_to=user_directory_path, blank=True, null=True)
+    photo           = models.ImageField(verbose_name='Fotka',upload_to=user_directory_path, blank=True, null=True)
     towns           = models.ManyToManyField(Town, blank=True, verbose_name='Města')
-    credit          = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    credit          = models.DecimalField('Kredit', max_digits=12, decimal_places=2, default=0.00, editable=False)
     subjects        = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
+    phone           = models.DecimalField('Telefoní číslo', max_digits=9, decimal_places=0, null=True, blank=True)
+    sex             = models.CharField('Jsem', max_length=1, choices=SEX_CHOICES, default='n')
+    slovak          = models.BooleanField('Mluvím slovensky', default=False)
+    home            = models.BooleanField('Doučuji u sebe doma', default=False)
+    commute         = models.BooleanField('Můžu dojíždět', default=True)
+    monday          = models.BooleanField('Pondělí', default=True)
+    tuesday         = models.BooleanField('Úterý', default=True)
+    wednesday       = models.BooleanField('Středa', default=True)
+    thursday        = models.BooleanField('Čtvrtek', default=True)
+    friday          = models.BooleanField('Pátek', default=True)
+    saturday        = models.BooleanField('Soboa', default=True)
+    sundey          = models.BooleanField('Neděle', default=True)
+    notice_any      = models.PositiveSmallIntegerField('Všechny nové poptávky', choices=NOTICE_CHOICES, default=0)
+    notice_suited   = models.PositiveSmallIntegerField('Poptávky pro mě', choices=NOTICE_CHOICES, default=1)
+    notice_aimed    = models.PositiveSmallIntegerField('Poptávky cílené na mě', choices=NOTICE_CHOICES, default=2)
     is_active       = models.BooleanField(default=True, editable=False)
+    variable_symbol = models.DecimalField("Variabilní symbol", max_digits=10, decimal_places=0, editable=False)
     objects         = LectorManager()
+
+    def rating(self):
+        demands = Demand.objects.filter(taken_by=self.id).exclude(rating=None)
+        s = 0
+        for demand in demands:
+            s += demand.rating
+        return s / len(demands)
 
     def deactivate(self):
         self.is_active = False
@@ -353,10 +396,16 @@ class Teach(models.Model):
     lector      = models.ForeignKey(Lector, verbose_name="Lektor")
     subject     = models.ForeignKey(Subject, verbose_name="Předmět")
     level       = models.ForeignKey(Level, verbose_name="Úroveň")
-    price       = models.IntegerField("Cena")
+    price       = models.IntegerField("Cena při cílené poptávce")
 
     def __unicode__(self):
         return '{} na úrovni {}'.format(self.subject.name, self.level.name)
+
+    def save(self, *args, **kwargs):
+        if self.subject.scheme == self.level.scheme:
+            super(Teach, self).save(*args, **kwargs)
+        else:
+            raise IntegrityError("schemes didn't match")
 
     class Meta:
         unique_together = (('lector', 'subject', 'level'),)
@@ -369,6 +418,11 @@ class Holyday(models.Model):
 
 
 class Demand(models.Model):
+    SEX_REQUIRED_CHOICES = (
+        ('n', 'Ne'),
+        ('f', 'Chci lektorku'),
+        ('m', 'Chci lektora'),
+    )
     DEMAND_TYPE_CHOICES =(
         ('f', 'Poptávna volná'),
         ('t', 'Poptávka cílená')
@@ -405,11 +459,19 @@ class Demand(models.Model):
     students        = models.PositiveSmallIntegerField('Počet studentů', default=0, choices=STUDENTS_CHOICES)
     subject_desript = models.CharField('Popis doučované láky', max_length=300)
     time_desript    = models.CharField('Kdy se můžem sejít', max_length=300)
-    is_taken        = models.BooleanField(default=False)
+    commute         = models.BooleanField('Můžu dojíždět', default=True)
+    sex_required    = models.CharField('Požaduji pohlaví lektora', max_length=1, default='n', choices=SEX_REQUIRED_CHOICES)
+    slovak          = models.BooleanField('Výuka ve slovenštině', default=True)
     slug            = models.CharField('Klíč', max_length=32, unique=True, editable=False)
     discount        = models.SmallIntegerField('Sleva v %', default=0, validators=[ MaxValueValidator(100), MinValueValidator(0) ])
-    targeted_to     = models.ManyToManyField(Lector, verbose_name='Zobrazit těmto lektorům', blank=True, related_name='demand_requiring')
+    target          = models.ManyToManyField(Lector, verbose_name='Zobrazit těmto lektorům', blank=True, related_name='demand_requiring')
     taken_by        = models.ForeignKey(Lector, verbose_name='Doučuje lektor', editable=False, null=True, related_name='demand_taken')
+
+    def is_taken(self):
+        if self.taken_by != None:
+            return True
+        else:
+            return False
 
     def deactivate(self):
         self.status = 1
@@ -429,11 +491,13 @@ class Demand(models.Model):
         return  charge
 
     def save(self, *args, **kwargs):
+        # add random unique slug key
         try:
             self.slug = get_random_string(length=32)
             with transaction.atomic():
                 super(Demand, self).save(*args, **kwargs)
         except IntegrityError as e:
+            # if slug already exists, try it 32times, then give it up
             for i in range(32):
                 self.slug = get_random_string(length=32)
                 try:
@@ -573,11 +637,24 @@ class CreditTransaction(models.Model):
         verbose_name = 'Pohyb kreditu'
         verbose_name_plural = 'Pohyby kreditu'
 
+
+
+def generate_varsym(userid):
+    # generate unique variable symbol
+    varsym = str(userid)
+    balance = [4,8,5,10,9,7,3,6]
+    complement = ['00','50','09','40','07','30','05','20','03','10','01']
+    s = 0
+    x = varsym[::-1]
+    for i in range(len(x)):
+        s += int(x[i]) * balance[i]
+    return int( varsym + complement[ s % 11 ] )
+
 @receiver(post_save, sender=User)
 def lector_add(sender, **kwargs):
-    """ create a Lector for evry new User """
+    # create a Lector for every new User with unique variable_symbol
     if kwargs['created']:
-        l = Lector.objects.create( user=kwargs['instance'] )
+        l = Lector.objects.create( user=kwargs['instance'], variable_symbol=generate_varsym( kwargs['instance'].pk ))
 
 @receiver(post_save, sender=Demand)
 def notification_demand_added(sender, **kwargs):
@@ -593,11 +670,11 @@ def account_transaction_added(sender, **kwargs):
     # if kwargs['created']:
     lector = None
     try:
-        lector = Lector.objects.get( pk=kwargs['instance'].variable_symbol )
+        lector = Lector.objects.get( variable_symbol=kwargs['instance'].variable_symbol )
     except:
         pass
     if lector:
-        # if there is a Lector with pk = variable_symbol
+        # if there is a Lector with variable_symbol == variable_symbol
         with transaction.atomic():
             # create appropriate CreditTransaction
             CreditTransaction.objects.create(
@@ -608,7 +685,7 @@ def account_transaction_added(sender, **kwargs):
                 comment = kwargs['instance'].message,
             )
     else:
-        # check possibly wrong variable_symbol here!
+        # check wrong variable_symbol here!
         pass
     # else:
     #     pass
