@@ -415,8 +415,8 @@ class Teach(models.Model):
 
 class Holyday(models.Model):
     lector   = models.ForeignKey(Lector)
-    start    = models.DateField(default=datetime.date.today)
-    end      = models.DateField(default=datetime.date.today)
+    start    = models.DateField(auto_now=True)
+    end      = models.DateField(auto_now=True)
 
 
 class Demand(models.Model):
