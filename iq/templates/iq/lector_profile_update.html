@@ -2,15 +2,40 @@
 {% load staticfiles %}
 
 {% block head %}
-    {{ form.media }}
-    <script src="{% static 'js/croppie.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'css/croppie.css' %}">
+  {{ form.media }}
+  <script src="{% static 'js/croppie.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/croppie.css' %}">
+
+  <style>
+#profilePhoto {
+  margin: 35px 30px;
+}
+
+.cr-boundary {
+  background-image: url({% static 'img/nophoto-man_1.png' %});
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#main-cropper-wrapper {
+  display: inline-block;
+}
+  </style>
 {% endblock %}
 
 {% block content %}
     <b>můj profil | </b><a href="/moje-doucovani/"><b>moje doučování</b></a> | <a href="/moje-nastaveni/"><b>moje nastavení</b></a></br>
-    <div id="main-cropper"></div>
-    <div id="res"></div>
+    <a href="/lektor/{{ user.lector.id }}/">jak mě vidí ostatní</a>
+    <div id="main-cropper-wrapper">
+      {% if user.lector.photo %}
+      <img id="profilePhoto" src="{{ user.lector.photo.url }}">
+      <div id="main-cropper" style="display:none"></div>
+      <button id="cropper-done" style="display:none" type=button>hotovo</button>
+      {% else %}
+      <div id="main-cropper"></div>
+      <button id="cropper-done" type=button value="hotovo"></button>
+      {% endif %}
+    </div>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% for field in form %}
@@ -33,8 +58,8 @@
     </form>
     <script>
 var basic = $('#main-cropper').croppie({
-    viewport: { width: 180, height: 240 },
-    boundary: { width: 240, height: 320 },
+    viewport: { width: 150, height: 200 },
+    boundary: { width: 210, height: 270 },
     showZoomer: false,
     {% if lector.photo %}url: '{{ lector.photo.url }}'{% endif %}
 });
@@ -47,23 +72,24 @@ function readFile(input) {
       $('#main-cropper').croppie('bind', {
         url: e.target.result
       });
-      $('.actionDone').toggle();
-      $('.actionUpload').toggle();
     }
 
     reader.readAsDataURL(input.files[0]);
   }
 }
 
-$('#id_photo').on('change', function () { readFile(this); });
-$('label').mousedown(function(){
-  console.log($('#main-cropper').croppie('result',{}));
-  $('#res').append( $('#main-cropper').croppie('result',{}) );
+$('#id_photo').on('change', function () {
+  $('#profilePhoto').css('display','none');
+  $('#main-cropper').css('display','inline-block');
+  $('#cropper-done').css('display','inline-block');
+  readFile(this);
 });
-$('.actionDone').on('click', function(){
-  $('.actionDone').toggle();
-  $('.actionUpload').toggle();
-})
+
+$('#cropper-done').click(function(){
+  $('#main-cropper').croppie('result',{}).then(function(croppedData){
+    $('#id_cropped').val( croppedData );
+  });
+});
     </script>
 
 {% endblock %}

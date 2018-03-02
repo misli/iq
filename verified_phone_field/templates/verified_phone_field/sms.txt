@@ -1,0 +1,2 @@
+{% load i18n%}{% blocktrans with code=code expiration_time=expiration_time %}Hello, Your verification code is: {{code}}
+{% endblocktrans %}{% comment %}Please note, that the code is only valid before: {{ expiration_time }}{% endcomment %}

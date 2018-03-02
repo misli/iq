@@ -6,9 +6,13 @@
 
 {% block content %}
     <a href="/muj-profil/"><b>můj profil</b></a> | <a href="/moje-doucovani/"><b>moje doučování</b></a><b> | moje nastavení</b></br>
-    <p class="help">Kredit: {{ request.user.lector.credit }} <a href="/dobit-kredit/"><button type="button">dobít kredit</button></a></p>
+    <p >Kredit: {{ object.credit }} <a href="/dobit-kredit/"><button type="button">dobít kredit</button></a></p>
     <form action="" method="post">
         {% csrf_token %}
+        <p>E-mail: {{ object.user.email }} <button type="submit" name="change_email">změnit email</button></p>
+        {% if object.phone %}
+        <p>Telefon: {{ object.phone }} <button type="submit" name="change_phone">změnit telefon</button></p>
+        {% endif %}
         {% for field in form %}
         <div class="fieldWrapper">
             {{ field.errors }}

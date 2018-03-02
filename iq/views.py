@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 import json
 import requests
+import base64
+import cStringIO
 from datetime import datetime, timedelta
 
-from formtools.wizard.views import SessionWizardView
 
+from formtools.wizard.views import SessionWizardView
 from django import views
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.conf import settings
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.core import serializers
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.forms import ValidationError
 from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
@@ -70,6 +74,7 @@ def check_account():
 class signup(views.View):
     form_class = forms.RegistrationForm
     template_name = 'registration/signup.html'
+    success_url = '/muj-profil/'
 
     def get(self, request):
         form = self.form_class()
@@ -78,13 +83,18 @@ class signup(views.View):
     def post(self, request):
         form = self.form_class(request.POST)
         if form.is_valid():
-            form.save()
-            email = form.cleaned_data.get('email')
-            raw_password = form.cleaned_data.get('password1')
-            user = authenticate(email=email, password=raw_password)
-            login(request, user)
-            return HttpResponseRedirect('/')
-
+            # transaction.atomic is wraped by try
+            # because HttpResponseRedirect causes __exit__
+            try:
+                with transaction.atomic():
+                    form.save()
+                    email = form.cleaned_data.get('email')
+                    raw_password = form.cleaned_data.get('password1')
+                    user = authenticate(email=email, password=raw_password)
+                    login(request, user)
+            except IntegrityError as err:
+                raise IntegrityError(err.message)
+            return HttpResponseRedirect(self.success_url)
         return render(request, self.template_name, {'form': form})
 
 
@@ -93,7 +103,7 @@ class CategoryListView(views.generic.list.ListView):
 
 
 class SubjectListView(views.generic.list.ListView):
-    template_name = 'iq/subject_list.html'
+
     # celé get zkopírované ze zdroje jen jsem upravil volání get_queryset, aby se předaly argumenty *args, **kwargs
     def get(self, request, *args, **kwargs):
         self.object_list = self.get_queryset(self, *args, **kwargs)
@@ -139,6 +149,15 @@ class DemandSessionWizardView(SessionWizardView):
     template_name = 'iq/demand_create.html'
     form_list = [forms.DemandSessionWizardForm1, forms.DemandSessionWizardForm2,
                 forms.DemandSessionWizardForm3, forms.DemandSessionWizardForm4]
+
+    def get_form_kwargs(self, step=None):
+        kwargs = {}
+        if step == '2':
+            # add data from first step to filter lectors for target field
+            kwargs['towns'] = self.get_cleaned_data_for_step('0')['towns']
+            kwargs['subject'] = self.get_cleaned_data_for_step('0')['subject']
+            kwargs['level'] = self.get_cleaned_data_for_step('0')['level']
+        return kwargs
 
     def done(self, form_list, **kwargs):
         form = self.get_all_cleaned_data()
@@ -192,7 +211,7 @@ class DemandDetailView(views.generic.edit.FormView):
         if not context['demand'].status:
             # only if demand is active
             context['active'] = True
-            context['not_able'] = self.request.user.lector.take_ability_check( context['demand'] )
+            context['not_able'] = self.request.user.lector.take_ability_check(context['demand'])
         else:
             context['active'] = False
         return context
@@ -217,7 +236,7 @@ class DemandUpdateView(views.generic.edit.UpdateView):
     model = models.Demand
     success_url = '/poptavka-zmenena/'
     form_class = forms.DemandUpdateForm
-    template_name_suffix = '_edit'
+    template_name_suffix = '_update'
 
 def demand_updated_view(request):
     return render(request, 'iq/demand_updated.html')
@@ -244,7 +263,7 @@ class TakeDemandView(views.generic.edit.CreateView):
 
     def form_valid(self, form):
         # transaction.atomic is wraped by try
-        # HttpResponseRedirect causes __exit__
+        # because HttpResponseRedirect causes __exit__
         try:
             with transaction.atomic():
                 self.model.objects.create(
@@ -288,11 +307,13 @@ class LectorDetailView(views.generic.detail.DetailView):
     model = models.Lector
 
     def get_context_data(self, **kwargs):
+        # add list of taught subjects
         context = super(LectorDetailView, self).get_context_data(**kwargs)
         context['teach_list'] = models.Teach.objects.filter(lector=context['object'].id)
         return context
 
     def get(self, request, *args, **kwargs):
+        # filter only lectors with completed profile
         self.object = self.get_object()
         if self.object.has_complete_profile():
             return super(LectorDetailView, self).get(request, *args, **kwargs)
@@ -315,21 +336,35 @@ class LectorProfileUpdateView(views.generic.edit.UpdateView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        self.success_url = '/lektor/{}/'.format(self.object.pk)
+        if self.object.phone:
+            self.success_url = '/lektor/{}/'.format(self.object.pk)
+        else:
+            self.success_url = '/moje-nastaveni/'
         self.teach_formset = forms.TeachFormSet(self.request.POST, instance=self.object)
         self.teach_formset.full_clean()
+        if request.POST.get('cropped'):
+            format, imgstr = request.POST['cropped'].split(';base64,')
+            ext = format.split('/')[-1]
+            file = cStringIO.StringIO(base64.b64decode(imgstr ))
+            image = InMemoryUploadedFile(file,
+               field_name='photo',
+               name='profilovka.' + ext,
+               content_type="image/jpeg",
+               size=len(file.getvalue()),
+               charset=None)
+            print image
+            request.FILES[u'photo'] = image
         return super(LectorProfileUpdateView, self).post(request, *args, **kwargs)
 
     def form_valid(self, form):
-          # context = self.get_context_data()
-          formset = self.teach_formset
-          if formset.is_valid():
-              self.object = form.save()
-              formset.instance = self.object
-              formset.save()
-              return HttpResponseRedirect(self.success_url)
-          else:
-              return self.render_to_response(self.get_context_data(form=form))
+        formset = self.teach_formset
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
+            formset.save()
+            return HttpResponseRedirect(self.success_url)
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -341,14 +376,67 @@ class LectorSettingsUpdateView(views.generic.edit.UpdateView):
     def get_object(self, queryset=None):
         return self.request.user.lector
 
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        return super(LectorSettingsUpdateView, self).get(request, *args, **kwargs)
+    def get_form(self, form_class=None):
+        # get form with phone field only if phone is not provided yet
+        return self.form_class(bool(self.object.phone), **self.get_form_kwargs())
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        self.success_url = '/lektor/{}/'.format(self.object.pk)
+        if self.object.has_complete_profile():
+            self.success_url = '/lektor/{}/'.format(self.object.pk)
+        else:
+            self.success_url = '/muj-profil/'
         return super(LectorSettingsUpdateView, self).post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        self.object = form.save()
+        if 'change_email' in form.data:
+            return HttpResponseRedirect('/zmena-emailu/')
+        elif 'change_phone' in form.data:
+            return HttpResponseRedirect('/zmena-telefonu/')
+        else:
+            return HttpResponseRedirect(self.success_url)
+
+
+@method_decorator(login_required, name='dispatch')
+class UserEmailUpdateView(views.generic.edit.UpdateView):
+    model = models.User
+    form_class = forms.UserEmailUpdateForm
+    template_name_suffix = '_email_update'
+    success_url = '/moje-nastaveni/'
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_form(self, form_class=None):
+        # send original_email to form class for security reasons
+        if form_class is None:
+            form_class = self.get_form_class()
+        return form_class(self.original_email, **self.get_form_kwargs())
+
+    def form_valid(self, form):
+        self.object.email = form.cleaned_data['new_email']
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def dispatch(self, request, *args, **kwargs):
+        self.original_email = request.user.email
+        return super(UserEmailUpdateView, self).dispatch(request, *args, **kwargs)
+
+
+@method_decorator(login_required, name='dispatch')
+class LectorPhoneUpdateView(views.generic.edit.UpdateView):
+    model = models.User.lector
+    form_class = forms.LectorPhoneUpdateForm
+    template_name_suffix = '_phone_update'
+
+    def get_object(self, queryset=None):
+        return self.request.user.lector
+
+    def form_valid(self, form):
+        self.object.phone = form.cleaned_data['phone']
+        self.object.save()
+        return super(LectorPhoneUpdateView, self).form_valid(form)
 
 
 def home(request):

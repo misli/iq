@@ -44,3 +44,9 @@ input:required {
 .profilePhoto {
   height: 200px;
 }
+.profile {
+  display: inline-block;
+  margin: 20px;
+  padding: 20px;
+  background-color: #CABB9F;
+}

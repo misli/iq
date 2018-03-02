@@ -85,7 +85,7 @@ class Settings(models.Model):
         ]
 
     def notify_new_demand(self, demand):
-        lectors = Lector.objects.all()
+        lectors = Lector.objects.filter(is_active=True)
         to_all = []
         for l in lectors:
             to_all.append(l.email())
@@ -173,8 +173,8 @@ class User(AbstractUser):
     username = None
     first_name = None
     last_name = None
-    # email = VerifiedEmailField('e-mail', unique=True)
     email = models.EmailField('E-mail', unique=True)
+    agree = models.BooleanField('Souhlasím s obchodními podmínkami', default=False)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -311,7 +311,7 @@ class Lector(models.Model):
     towns           = models.ManyToManyField(Town, blank=True, verbose_name='Města')
     credit          = models.DecimalField('Kredit', max_digits=12, decimal_places=2, default=0.00, editable=False)
     subjects        = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
-    phone           = models.DecimalField('Telefoní číslo', max_digits=9, decimal_places=0, null=True, blank=True)
+    phone           = models.DecimalField('Telefoní číslo', max_digits=9, decimal_places=0, null=True, unique=True)
     sex             = models.CharField('Jsem', max_length=1, choices=SEX_CHOICES, default='n')
     slovak          = models.BooleanField('Mluvím slovensky', default=False)
     home            = models.BooleanField('Doučuji u sebe doma', default=False)
@@ -326,7 +326,7 @@ class Lector(models.Model):
     notice_any      = models.PositiveSmallIntegerField('Všechny nové poptávky', choices=NOTICE_CHOICES, default=0)
     notice_suited   = models.PositiveSmallIntegerField('Poptávky pro mě', choices=NOTICE_CHOICES, default=1)
     notice_aimed    = models.PositiveSmallIntegerField('Poptávky cílené na mě', choices=NOTICE_CHOICES, default=2)
-    is_active       = models.BooleanField(default=True, editable=False)
+    is_active       = models.BooleanField(default=True)
     variable_symbol = models.DecimalField("Variabilní symbol", max_digits=10, decimal_places=0, editable=False)
     objects         = LectorManager()
 
@@ -447,6 +447,7 @@ class Demand(models.Model):
         (2, '3 studenti'),
         (3, '4 a více studentů'),
     )
+    agree           = models.BooleanField('Souhlasím s obchodními podmínkami',default=False, )
     demand_type     = models.CharField('Typ poptávky', max_length=1, default='f', choices=DEMAND_TYPE_CHOICES)
     status          = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
     first_name      = models.CharField('Jméno', max_length=100)

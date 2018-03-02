@@ -45,6 +45,7 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'iq/emails/') # change this to a proper
 INSTALLED_APPS = [
     'iq',
     'verified_email_field',
+    'verified_phone_field',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

@@ -3,9 +3,13 @@
 {% block content %}
     <a href="/muj-profil/"><b>můj profil</b></a><b> | moje doučování | </b><a href="/moje-nastaveni/"><b>moje nastavení</b></a></br>
     <h2>Moje doučování</h2>
+    {% if object_list %}
     <ul>
         {% for demand in object_list %}
         <li><a href="/poptavka/{{demand.id}}/">{{ demand.first_name }} {{ demand.last_name }} - {{ demand }}</a></li>
         {% endfor %}
     </ul>
+    {% else %}
+    <p>Zde bude přehled Všech studentů, jen co si nějaké vyberete.</p>
+    {% endif %}
 {% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'iq/base.html' %}
+
+{% block head %}
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+<a href="/muj-profil/"><b>můj profil</b></a> | <a href="/moje-doucovani/"><b>moje doučování</b></a> | <a href="/moje-nastaveni/"><b>moje nastavení</b></a></br>
+<p>Změna e-mailové adresy</p>
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Změnit" />
+</form>
+{% endblock %}

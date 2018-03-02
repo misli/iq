@@ -14,7 +14,7 @@
 <body>
   <div id="log">
     {% if request.user.is_authenticated %}
-    <a href="/moje-doucovani/" class="color-blue">{{request.user.lector}}</a> | <a href="/odhlaseni/">odhlásit se</a>
+    <a href="/{% if request.user.lector.has_complete_profile %}moje-doucovani{% else %}muj-profil{% endif %}/" class="color-blue">{{request.user.lector}}</a> | <a href="/odhlaseni/">odhlásit se</a>
     {% else %}
     <a href="/prihlaseni/" class="color-blue">přihlášní</a> | <a href="/registrace/">registrace</a>
     {% endif %}

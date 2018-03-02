@@ -17,19 +17,19 @@
   {% endif %}
 {% endfor %}
   <table>
-        {{ wizard.management_form }}
-        {% if wizard.form.forms %}
-            {{ wizard.form.management_form }}
-            {% for form in wizard.form.forms %}
-                {{ form }}
-            {% endfor %}
-        {% else %}
-            {{ wizard.form }}
-        {% endif %}
-    </table>
-    {% if wizard.steps.prev %}
-    <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}">zpět</button>
+    {{ wizard.management_form }}
+    {% if wizard.form.forms %}
+      {{ wizard.form.management_form }}
+      {% for form in wizard.form.forms %}
+        {{ form }}
+      {% endfor %}
+    {% else %}
+      {{ wizard.form }}
     {% endif %}
+  </table>
+  {% if wizard.steps.prev %}
+  <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}">zpět</button>
+  {% endif %}
 <input type="submit" value="{% if wizard.steps.step0|slugify == wizard.steps.last %}dokončit{% else %}další{% endif %}"/>
 </form>
 {% endblock %}

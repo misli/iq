@@ -1,12 +1,13 @@
 {% extends 'iq/base.html' %}
+{% load staticfiles %}
 
 {% block content %}
 <p>toto je přehled lektorů</p>
-<ul>
   {% for lector in object_list %}
     {% if lector.has_complete_profile %}
-      <li><a href="/lektor/{{lector.id}}/">{{ lector }}</a></li>
+      <a href="/lektor/{{lector.id}}/"><div class="profile">
+        <img class="profilePhoto" src="{% if lector.photo %}{{ lector.photo.url }}{% else %}{% static 'img/nophoto-man_1.png' %}{% endif %}">{{ lector }}
+      </div></a>
     {% endif %}
   {% endfor %}
-</ul>
 {% endblock %}
