@@ -76,6 +76,14 @@ class Settings(models.Model):
     charge4x2               = models.PositiveIntegerField('Poplatek: 4 studenti 2-4 lekcí', default=200)
     charge4x5               = models.PositiveIntegerField('Poplatek: 4 studenti 5-9 lekcí', default=400)
     charge4x10              = models.PositiveIntegerField('Poplatek: 4 studenti 10 a více lekcí', default=500)
+
+    class Meta:
+        verbose_name = "Nastavení"
+        verbose_name_plural = "Nastavení"
+
+    def __unicode__(self):
+        return "Nastavení"
+
     def get_charge_list(self):
         return [
             [self.charge1x1, self.charge1x2, self.charge1x5, self.charge1x10],
@@ -122,12 +130,7 @@ class Settings(models.Model):
         else:
             return super(Settings, self).save(*args, **kwargs)
 
-    def __unicode__(self):
-        return "Nastavení"
 
-    class Meta:
-        verbose_name = "Nastavení"
-        verbose_name_plural = "Nastavení"
 
 try:
     sets = Settings.objects.get(pk=1)
@@ -202,26 +205,22 @@ class Town(models.Model):
     county      = models.CharField('Kraj', max_length=1, choices=COUNTY_CHOICES)
     countyCapital = models.BooleanField()
 
-    def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
-        super(Town, self).save(*args, **kwargs)
+    class Meta:
+        verbose_name = "Město"
+        verbose_name_plural = "Města"
 
     def __unicode__(self):
         return self.name
 
-    class Meta:
-        verbose_name = "Město"
-        verbose_name_plural = "Města"
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Town, self).save(*args, **kwargs)
 
 
 class Category(models.Model):
     name        = models.CharField('Název', max_length=50, unique=True)
     slug        = models.SlugField('Slug', max_length=50, unique=True, editable=False)
     description  = models.TextField('Popis', max_length=500)
-
-    def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
-        super(Category, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Kategorie předmětů"
@@ -230,16 +229,20 @@ class Category(models.Model):
     def __unicode__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Category, self).save(*args, **kwargs)
+
 
 class Scheme(models.Model):
     name = models.CharField('název', max_length=50, unique=True)
 
-    def __unicode__(self):
-        return self.name
-
     class Meta:
         verbose_name = 'Systém úrovní'
         verbose_name_plural = 'Systémy úrovní'
+
+    def __unicode__(self):
+        return self.name
 
 
 class Subject(models.Model):
@@ -249,16 +252,16 @@ class Subject(models.Model):
     category    = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name = 'Kategorie')
     scheme      = models.ForeignKey(Scheme, verbose_name = 'Systém úrovní')
 
-    def save(self, *args, **kwargs):
-        self.slug = slugify(self.name)
-        super(Subject, self).save(*args, **kwargs)
+    class Meta:
+        verbose_name = 'Předmět'
+        verbose_name_plural = 'Předměty'
 
     def __unicode__(self):
         return self.name
 
-    class Meta:
-        verbose_name = 'Předmět'
-        verbose_name_plural = 'Předměty'
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Subject, self).save(*args, **kwargs)
 
 
 class Level(models.Model):
@@ -266,12 +269,12 @@ class Level(models.Model):
     order   = models.PositiveSmallIntegerField('Pořadí')
     scheme  = models.ForeignKey(Scheme, on_delete=models.PROTECT, verbose_name = 'Systém úrovní')
 
-    def __unicode__(self):
-            return self.name
-
     class Meta:
         verbose_name = "Úroveň"
         verbose_name_plural = "Úroveně"
+
+    def __unicode__(self):
+        return self.name
 
 
 # title_before = ("as.","odb. as.","doc.","prof.","Bc.","BcA.","Ing.","Ing. arch.","JUDr.","MDDr.","MgA.","Mgr.","MSDr.","MUDr.","MVDr.","PaedDr.","PharmDr.","PhDr.","PhMr.","RCDr.","RNDr.","RSDr.","RTDr.","ThDr.","ThLic.","ThMgr.")
