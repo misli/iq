@@ -6,3 +6,16 @@
 <a href="/registrace/">chci doučovat</a><br />
 <a href="/jak-to-funguje/">jak to funguje</a>
 {% endblock %}
+
+{% block js %}
+<script>
+$(function(){
+  if(!document.referrer){
+    $('#logo_div').css('width','400px');
+    $('#logo_div').animate({
+      'width' : '200px'
+    }, 1600)
+  }
+})
+</script>
+{% endblock %}

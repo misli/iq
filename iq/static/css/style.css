@@ -1,4 +1,5 @@
 body {
+  margin: 0 auto;
   color: #7A6958;
 }
 a, a:hover {
@@ -13,22 +14,29 @@ pozadi #CABB9F
 světlé tlačítko #A48974
 tmave tlačítko #7A6958
 modrá #1D70b7*/
-body > *{
-  padding: 2%;
-}
 .helptext{
   font-size: 0.8em;
 }
-#log{
-  position: absolute;
-  top: 0px;
-  right: 0px;
+#menu {
+  text-transform: uppercase;
+  display: inline-block;
+}
+#log {
+  display: inline-block;
+  float: right;
+}
+#menu, #log {
+  margin: 20px;
 }
 #header {
-  text-transform: uppercase;
   border-bottom: solid 5px #CABB9F;
+  /* padding: 20px; */
+  vertical-align: top;
+  width: 100%;
 }
 #content {
+  width: 70%;
+  margin: 50px auto;
   padding-bottom: 100px;
 }
 #footer {
@@ -49,4 +57,15 @@ input:required {
   margin: 20px;
   padding: 20px;
   background-color: #CABB9F;
+}
+#logo_div {
+  float: left;
+  width: 200px;
+  background-color: white;
+}
+
+#logo {
+  display: block;
+  margin: 20px auto;
+  width: 80%
 }
