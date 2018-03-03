@@ -277,9 +277,6 @@ class Level(models.Model):
         return self.name
 
 
-# title_before = ("as.","odb. as.","doc.","prof.","Bc.","BcA.","Ing.","Ing. arch.","JUDr.","MDDr.","MgA.","Mgr.","MSDr.","MUDr.","MVDr.","PaedDr.","PharmDr.","PhDr.","PhMr.","RCDr.","RNDr.","RSDr.","RTDr.","ThDr.","ThLic.","ThMgr.")
-# title_after = ("CSc.","Dr.","DrSc.","DSc.","Ph.D.","Th.D.","DiS.")
-
 class LectorManager(models.Manager):
     def get_queryset(self):
         return super(LectorManager, self).get_queryset().filter(user__is_active=True)
@@ -332,6 +329,13 @@ class Lector(models.Model):
     is_active       = models.BooleanField(default=True)
     variable_symbol = models.DecimalField("Variabilní symbol", max_digits=10, decimal_places=0, editable=False)
     objects         = LectorManager()
+
+    class Meta:
+        verbose_name = 'Lektor'
+        verbose_name_plural = 'Lektoři'
+
+    def __unicode__(self):
+        return self.full_name() or self.user.email
 
     def rating(self):
         demands = Demand.objects.filter(taken_by=self.id).exclude(rating=None)
@@ -389,12 +393,6 @@ class Lector(models.Model):
     def full_name(self):
         return '{} {} {} {}'.format(self.titles_before or "", self.first_name, self.last_name, self.titles_after or "").strip()
 
-    def __unicode__(self):
-        return self.full_name() or self.user.email
-
-    class Meta:
-        verbose_name = 'Lektor'
-        verbose_name_plural = 'Lektoři'
 
 
 class Teach(models.Model):
