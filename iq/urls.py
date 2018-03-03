@@ -29,6 +29,7 @@ urlpatterns = [
     url(r'^vzit-poptavku/(?P<pk>[0-9]+)/$', views.TakeDemandView.as_view()),
     url(r'^poptavka/(?P<pk>[0-9]+)/$', views.DemandDetailView.as_view()),
     url(r'^moje-doucovani/$', views.MyDemandListView.as_view()),
+    url(r'^moje-doucovani/(?P<pk>[0-9]+)/$', views.MyDemandDetailView.as_view()),
     url(r'^moje-doucovani/(?P<slug>[a-zA-Z0-9]{32})/$', views.DemandUpdateView.as_view()),
     url(r'^nova-poptavka/', views.DemandSessionWizardView.as_view()),
     url(r'^poptavka-zmenena/', views.demand_updated_view),

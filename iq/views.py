@@ -132,16 +132,34 @@ class DemandSessionWizardView(SessionWizardView):
 @method_decorator(login_required, name='dispatch')
 class DemandListView(views.generic.list.ListView):
     model = models.Demand
+    template_name = 'iq/demand_list.html'
 
     def get_queryset(self, *args, **kwargs):
         # get only active demands
-        return  self.model.objects.filter(status=0)
-
+        demands = super(DemandListView, self).get_queryset().filter(status=0)
+        lector = self.request.user.lector
+        object_list = {}
+        # sort demands: 1.targeted to the lector(are allways suitable)
+        # 2. suitable for the lector but not targeted to anyone
+        # 3. all othor - neither targeted nor suitable
+        object_list['targeted'] = demands.filter(target=lector.id)
+        object_list['suitable'] = lector.get_suitable_damands(demands.filter(target=None))
+        object_list['other'] = demands.filter(target=None).exclude(pk__in=object_list['suitable'])
+        return object_list
 
 @method_decorator(login_required, name='dispatch')
 class MyDemandListView(views.generic.list.ListView):
     model = models.Demand
     template_name = 'iq/my_demand_list.html'
+
+    def get_queryset(self, *args, **kwargs):
+        # get only demands taken by the user
+        return  self.model.objects.filter( taken_by=self.request.user.lector )
+
+@method_decorator(login_required, name='dispatch')
+class MyDemandDetailView(views.generic.detail.DetailView):
+    model = models.Demand
+    template_name = 'iq/my_demand_detail.html'
 
     def get_queryset(self, *args, **kwargs):
         # get only demands taken by the user
@@ -398,4 +416,4 @@ def relog(request):
 
 @login_required
 def credit_topup_view(request):
-    return render(request, 'iq/credit_topup.html', {'account_number':settings.ACCOUNT_NUMBER})
+    return render(request, 'iq/credit_topup.html', {'account_number':settings.FIO_ACCOUNT_NUMBER})

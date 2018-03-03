@@ -1,10 +1,16 @@
 {% extends "iq/base.html" %}
 
 {% block content %}
-    <h2>Poptávky</h2>
-    <ul>
-        {% for demand in object_list %}
-        <li><a href="/poptavka/{{demand.id}}/">{{ demand }}</a></li>
-        {% endfor %}
-    </ul>
+    <h3>Poptávky cílené na mě</h3>
+    {% for demand in object_list.targeted %}
+    <a href="/poptavka/{{demand.id}}/">{{ demand }}</a></br>
+    {% endfor %}
+    <h3>Volné poptávky pro mě</h3>
+    {% for demand in object_list.suitable %}
+    <a href="/poptavka/{{demand.id}}/">{{ demand }}</a></br>
+    {% endfor %}
+    <h3>Ostatní poptávky</h3>
+    {% for demand in object_list.other %}
+    <a href="/poptavka/{{demand.id}}/">{{ demand }}</a></br>
+    {% endfor %}
 {% endblock %}

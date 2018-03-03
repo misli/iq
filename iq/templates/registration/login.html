@@ -10,7 +10,7 @@
       {% csrf_token %}
       {{ form.as_table }}
     </table>
-    <button type="submit">Login</button>
+    <button type="submit">Přihlásit se</button>
   </form>
 {% else %}
   <p>{{ request.user.lector }}</p>

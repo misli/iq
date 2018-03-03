@@ -6,7 +6,7 @@
     {% if object_list %}
     <ul>
         {% for demand in object_list %}
-        <li><a href="/poptavka/{{demand.id}}/">{{ demand.first_name }} {{ demand.last_name }} - {{ demand }}</a></li>
+        <li><a href="/moje-doucovani/{{demand.id}}/">{{ demand.first_name }} {{ demand.last_name }} - {{ demand }}</a></li>
         {% endfor %}
     </ul>
     {% else %}

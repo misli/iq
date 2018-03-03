@@ -337,6 +337,9 @@ class Lector(models.Model):
     def __unicode__(self):
         return self.full_name() or self.user.email
 
+    def teach_list(self):
+        return Teach.objects.filter(lector=self.id)
+
     def rating(self):
         demands = Demand.objects.filter(taken_by=self.id).exclude(rating=None)
         s = 0
@@ -372,8 +375,8 @@ class Lector(models.Model):
                 compare = list(demand.towns.all()) + list(self.towns.all())
                 if len( set( compare ) ) < len( compare ):
                     if demand.subject in self.subjects.all():
-                        if demand.level in Teach.objects.filter(lector=self.id, subject=demand.subject):
-                            if self.is_active:
+                        if demand.level in [teach.level for teach in Teach.objects.filter(lector=self.id, subject=demand.subject)]:
+                            if self.is_active :
                                 return ABLE_CHOICES[0]
                             else:
                                 return ABLE_CHOICES[1]
@@ -388,6 +391,12 @@ class Lector(models.Model):
         else:
             return ABLE_CHOICES[6]
 
+    def get_suitable_damands(self, demands):
+        suitable = demands.none()
+        for teach in self.teach_list():
+            suitable = suitable | demands.filter(subject=teach.subject, level=teach.level, towns__in=self.towns.all()).distinct()
+        return suitable
+
     def credit_check(self, demand):
         return demand.get_charge() <= self.credit
 
@@ -399,7 +408,6 @@ class Lector(models.Model):
 
     def full_name(self):
         return '{} {} {} {}'.format(self.titles_before or "", self.first_name, self.last_name, self.titles_after or "").strip()
-
 
 
 class Teach(models.Model):
