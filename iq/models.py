@@ -361,28 +361,35 @@ class Lector(models.Model):
         ABLE_CHOICES=[
             False,
             "nemáš aktivní účet",
+            "na téhle úrovni to zatím nedáváš",
             "tenhle předmět neumíš",
             "v tomhle městě nedoučuješ",
-            "nemáš dostatečný kredit",
+            "nemáš ověřené telefoní číslo",
             "nemáš vyplněný profil",
         ]
         if self.has_complete_profile():
-            if demand.get_charge() <= self.credit:
+            if self.phone:
                 compare = list(demand.towns.all()) + list(self.towns.all())
                 if len( set( compare ) ) < len( compare ):
                     if demand.subject in self.subjects.all():
-                        if self.is_active:
-                            return ABLE_CHOICES[0]
+                        if demand.level in Teach.objects.filter(lector=self.id, subject=demand.subject):
+                            if self.is_active:
+                                return ABLE_CHOICES[0]
+                            else:
+                                return ABLE_CHOICES[1]
                         else:
-                            return ABLE_CHOICES[1]
+                            return ABLE_CHOICES[2]
                     else:
-                        return ABLE_CHOICES[2]
+                        return ABLE_CHOICES[3]
                 else:
-                    return ABLE_CHOICES[3]
+                    return ABLE_CHOICES[4]
             else:
-                return ABLE_CHOICES[4]
+                return ABLE_CHOICES[5]
         else:
-            return ABLE_CHOICES[5]
+            return ABLE_CHOICES[6]
+
+    def credit_check(self, demand):
+        return demand.get_charge() <= self.credit
 
     def email(self):
         return self.user.email

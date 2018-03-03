@@ -157,10 +157,11 @@ class DemandDetailView(views.generic.edit.FormView):
     def get_context_data(self, **kwargs):
         context = super(DemandDetailView, self).get_context_data()
         context['demand'] = get_object_or_404(self.model, pk=kwargs['pk'] )
+        # only if demand is active
         if not context['demand'].status:
-            # only if demand is active
             context['active'] = True
             context['not_able'] = self.request.user.lector.take_ability_check(context['demand'])
+            context['can_affort'] = self.request.user.lector.credit_check(context['demand'])
         else:
             context['active'] = False
         return context
