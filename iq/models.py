@@ -50,6 +50,7 @@ class LevelSelectWidget(Select):
 
 class Settings(models.Model):
     default_email_address               = models.EmailField('výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
+    fair_pay_limit                      = models.PositiveSmallIntegerField('Limit pro uhrazení férovky', default=14)
     notif_email_new_demand_subject      = models.CharField('Upozornění na novou poptávku: předmět', default='Nová poptávka', max_length=50)
     notif_email_new_demand_message      = models.CharField('Upozornění na novou poptávku: zpráva', default='Do systému byla přidána nová poptávka', max_length=500)
     confi_email_new_demand_subject      = models.CharField('Potvrzení nové poptávky: předmět', default='Nová poptávka', max_length=50)
@@ -328,6 +329,7 @@ class Lector(models.Model):
     notice_aimed    = models.PositiveSmallIntegerField('Poptávky cílené na mě', choices=NOTICE_CHOICES, default=2)
     is_active       = models.BooleanField(default=True)
     variable_symbol = models.DecimalField("Variabilní symbol", max_digits=10, decimal_places=0, editable=False)
+    fairtrade       = models.OneToOneField('Demand', null=True, blank=True, related_name='fairtrade')
     objects         = LectorManager()
 
     class Meta:
@@ -474,6 +476,7 @@ class Demand(models.Model):
     level           = models.ForeignKey(Level, on_delete=models.PROTECT, verbose_name='Úroveň')
     date_posted     = models.DateTimeField('Vloženo', auto_now_add=True)
     date_updated    = models.DateTimeField('Aktualizováno', auto_now=True)
+    date_taken      = models.DateTimeField('Převzato', null=True, editable=False)
     lessons         = models.PositiveSmallIntegerField('Počet lekcí', default=1, choices=LESSONS_CHOICES)
     students        = models.PositiveSmallIntegerField('Počet studentů', default=0, choices=STUDENTS_CHOICES)
     subject_desript = models.CharField('Popis doučované láky', max_length=300)
@@ -487,10 +490,7 @@ class Demand(models.Model):
     taken_by        = models.ForeignKey(Lector, verbose_name='Doučuje lektor', editable=False, null=True, related_name='demand_taken')
 
     def is_taken(self):
-        if self.taken_by != None:
-            return True
-        else:
-            return False
+        return True if self.taken_by else False
 
     def deactivate(self):
         self.status = 1
@@ -503,6 +503,9 @@ class Demand(models.Model):
 
     def is_discounted(self):
         return True if self.discount!=0 else False
+
+    def fair_pay_befor(self):
+        return self.date_taken + timedelta(days=sets.fair_pay_limit())
 
     def get_charge(self):
         charge = sets.get_charge_list()[self.students][self.lessons]

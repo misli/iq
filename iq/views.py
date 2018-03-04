@@ -178,8 +178,10 @@ class DemandDetailView(views.generic.edit.FormView):
         # only if demand is active
         if not context['demand'].status:
             context['active'] = True
-            context['not_able'] = self.request.user.lector.take_ability_check(context['demand'])
-            context['can_affort'] = self.request.user.lector.credit_check(context['demand'])
+            context['lector'] = self.request.user.lector
+            context['not_able'] = context['lector'].take_ability_check(context['demand'])
+            context['can_affort'] = context['lector'].credit_check(context['demand'])
+            context['can_do_fairtrade'] = True if not context['lector'].fairtrade else False
         else:
             context['active'] = False
         return context
@@ -190,12 +192,9 @@ class DemandDetailView(views.generic.edit.FormView):
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-        if self.context['active']:
-            if self.context['not_able']:
-                return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
-            else:
-                self.success_url = '/vzit-poptavku/{}/'.format( kwargs['pk'] )
-                return super(DemandDetailView, self).post(request, *args, **kwargs)
+        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_do_fairtrade']):
+            self.success_url = '/vzit-poptavku/{}/'.format( kwargs['pk'] )
+            return super(DemandDetailView, self).post(request, *args, **kwargs)
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
@@ -225,6 +224,8 @@ class TakeDemandView(views.generic.edit.CreateView):
             context['active'] = True
             context['lector'] = self.request.user.lector
             context['not_able'] = context['lector'].take_ability_check( context['demand'] )
+            context['can_affort'] = context['lector'].credit_check(context['demand'])
+            context['can_do_fairtrade'] = True if not context['lector'].fairtrade else False
         else:
             context['active'] = False
         return context
@@ -240,6 +241,8 @@ class TakeDemandView(views.generic.edit.CreateView):
                     volume = - self.context['demand'].get_charge(),
                     lector = self.context['lector'],
                 )
+                self.context['demand'].status=2
+                self.context['demand'].save()
         except IntegrityError as err:
             raise IntegrityError(err.message)
         return HttpResponseRedirect(self.success_url)
@@ -247,22 +250,15 @@ class TakeDemandView(views.generic.edit.CreateView):
     def get(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
         self.object = None
-        if self.context['active']:
-            if self.context['not_able']:
-                return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
-            else:
-                return self.render_to_response(self.context)
+        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_do_fairtrade']):
+            return self.render_to_response(self.context)
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-        if self.context['active']:
-            if self.context['not_able']:
-                return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
-            else:
-                self.success_url = '/moje-doucovani/'
-                return super(TakeDemandView, self).post(request, *args, **kwargs)
+        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_do_fairtrade']):
+            return super(TakeDemandView, self).post(request, *args, **kwargs)
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 

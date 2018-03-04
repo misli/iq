@@ -13,14 +13,22 @@
     <p>Vloženo: {{ demand.date_posted|date }}</p>
     <p>Aktualizováno: {{ demand.date_updated|date }}</p>
     <p>Poplatek: {{ demand.get_charge }} Kč</p>
-
+    <p>Váš kredit: {{ lector.credit }} Kč</p>
     {% if not_able %}
-        <button type="button" disabled="true">{{ not_able }}</button>
+    <button type="button" disabled="true">{{ not_able }}</button>
+    {% elif can_affort %}
+    <form action="" method="post">
+        {% csrf_token %}
+        <input type="submit" value="To beru !" />
+    </form>
+    {% elif can_do_fairtrade %}
+    <button type="button" disabled="true">nemáš dostatečný kredit</button>
+    <form action="" method="post">
+      {% csrf_token %}
+      <input type="submit" value="Na férovku" />
+    </form>
     {% else %}
-        <form action="" method="post">
-            {% csrf_token %}
-            <input type="submit" value="To beru !" />
-        </form>
+    <button type="button" disabled="true">nemáš dostatečný kredit</button>
     {% endif %}
 {% else %}
     {% if demand.status == 1 %}
