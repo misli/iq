@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -49,8 +50,12 @@ class LevelSelectWidget(Select):
 
 
 class Settings(models.Model):
-    default_email_address               = models.EmailField('výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
+    lectors_terms_and_conditions        = models.TextField('Obchodní podmínky pro lektory', default='Lektoři jsou povini dodržovat tyto obchodní podmínky')
+    students_terms_and_conditions       = models.TextField('Obchodní podmínky pro studenty', default='Studenti jsou povini dodržovat tyto obchodní podmínky')
+    default_email_address               = models.EmailField('Výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
     fair_pay_limit                      = models.PositiveSmallIntegerField('Limit pro uhrazení férovky', default=14)
+    demand_added                        = models.TextField('Potvrzení nové poptávky', default='Vaše poptávka byla úspěšně přidána do systému.\nPotvrzení jsme Vám zaslali také na e-mail, společně s odkazem pro úpravu Vaší poptávky pro případ, že by se cokoliv změnilo.\nDěkujeme, že využíváte našich služeb' )
+    demand_updated                      = models.TextField('Potvrzení úpravy poptávky', default='Vaše poptávka byla úspěšně upravena. Do E-mailu Vám byl zaslán nový odkaz pro další změny.')
     notif_email_new_demand_subject      = models.CharField('Upozornění na novou poptávku: předmět', default='Nová poptávka', max_length=50)
     notif_email_new_demand_message      = models.CharField('Upozornění na novou poptávku: zpráva', default='Do systému byla přidána nová poptávka', max_length=500)
     confi_email_new_demand_subject      = models.CharField('Potvrzení nové poptávky: předmět', default='Nová poptávka', max_length=50)
@@ -124,14 +129,18 @@ class Settings(models.Model):
             fail_silently=False,
         )
 
+    def messages(self):
+        return {
+            'added':    self.demand_added,
+            'updated':  self.demand_updated
+        }
+
     def save(self, *args, **kwargs):
         # neuloží víc než jedno nastavení
         if Settings.objects.exists() and not self.pk:
             pass
         else:
             return super(Settings, self).save(*args, **kwargs)
-
-
 
 try:
     sets = Settings.objects.get(pk=1)
@@ -213,9 +222,15 @@ class Town(models.Model):
     def __unicode__(self):
         return self.name
 
+    def number_of_lectors(self):
+        return Lector.objects.filter(towns__in=[self.id]).count()
+
+    def number_of_demands(self):
+        return Demand.objects.filter(towns__in=[self.id]).count()
+
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        super(Town, self).save(*args, **kwargs)
+        return super(Town, self).save(*args, **kwargs)
 
 
 class Category(models.Model):
@@ -489,6 +504,13 @@ class Demand(models.Model):
     target          = models.ManyToManyField(Lector, verbose_name='Zobrazit těmto lektorům', blank=True, related_name='demand_requiring')
     taken_by        = models.ForeignKey(Lector, verbose_name='Doučuje lektor', editable=False, null=True, related_name='demand_taken')
 
+    class Meta:
+        verbose_name = "Poptávka"
+        verbose_name_plural = "Poptávky"
+
+    def __unicode__(self):
+        return '{} na úrovnni {}'.format( self.subject, self.level).strip()
+
     def is_taken(self):
         return True if self.taken_by else False
 
@@ -507,10 +529,16 @@ class Demand(models.Model):
     def fair_pay_befor(self):
         return self.date_taken + timedelta(days=sets.fair_pay_limit())
 
+    def towns_as_str(self):
+        return ', '.join([town.name for town in self.towns.all()])
+
     def get_charge(self):
         charge = sets.get_charge_list()[self.students][self.lessons]
         charge -= self.discount * charge / 100
         return  charge
+
+    def full_name(self):
+        return '{} {}'.format(self.first_name, self.last_name)
 
     def save(self, *args, **kwargs):
         # add random unique slug key
@@ -531,34 +559,28 @@ class Demand(models.Model):
             else:
                 raise IntegrityError(e.message)
 
-    def __unicode__(self):
-        return '{} na úrovnni {}'.format( self.subject, self.level).strip()
-
-    class Meta:
-        verbose_name = "Poptávka"
-        verbose_name_plural = "Poptávky"
-
 
 class AccountRequest(models.Model):
-    account_id      = models.DecimalField("Číslo účtu", max_digits=10, decimal_places=0)
+    account_id      = models.DecimalField("Číslo účtu", max_digits=10, decimal_places=0, editable=False)
     # bank_id         = models.CharField("Číslo banky", max_length=4)
     # currency        = models.CharField("Měna", max_length=3)
     # iban            = models.CharField("IBAN", max_length=34)
     # bic             = models.CharField("BIC", max_length=11)
-    opening_balance = models.DecimalField("Počáteční satv", max_digits=18, decimal_places=2)
-    closing_balance = models.DecimalField("Konečný satv", max_digits=18, decimal_places=2)
-    date_start      = models.DateField("Datum od")
-    date_end        = models.DateField("Datum do")
-    id_to           = models.DecimalField("Do id pohybu", max_digits=12, decimal_places=0, null=True)
-    id_from         = models.DecimalField("Od id pohybu", max_digits=12, decimal_places=0, null=True)
-    id_last_download = models.DecimalField("Id posledního úspěšně staženého pohybu", max_digits=12, decimal_places=0, null=True)
-
-    def __unicode__(self):
-        return str(self.date_end)
+    opening_balance = models.DecimalField("Počáteční satv", max_digits=18, decimal_places=2, editable=False)
+    closing_balance = models.DecimalField("Konečný satv", max_digits=18, decimal_places=2, editable=False)
+    date_start      = models.DateField("Datum od", editable=False)
+    date_end        = models.DateField("Datum do", editable=False)
+    id_to           = models.DecimalField("Do id pohybu", max_digits=12, decimal_places=0, null=True, editable=False)
+    id_from         = models.DecimalField("Od id pohybu", max_digits=12, decimal_places=0, null=True, editable=False)
+    id_last_download = models.DecimalField("Id posledního úspěšně staženého pohybu", max_digits=12, decimal_places=0, null=True, editable=False)
 
     class Meta:
         verbose_name = 'Požadavek na výpis'
         verbose_name_plural = 'Požadavky na výpis'
+
+    def __unicode__(self):
+        return str(self.date_end)
+
 
 
 class AccountTransaction(models.Model):
@@ -581,6 +603,13 @@ class AccountTransaction(models.Model):
     comment         = models.CharField('Komentář', max_length=255, null=True, editable=False)
     bic             = models.CharField('BIC', max_length=11, null=True, editable=False)
     command_id      = models.DecimalField('ID pokynu', max_digits=12, decimal_places=0, null=True, editable=False)
+
+    class Meta:
+        verbose_name = 'Pohyb na účtě'
+        verbose_name_plural = 'Pohyby na účtě'
+
+    def __unicode__(self):
+        return str(self.transaction_id)
     #
     # def save(self, *args, **kwargs):
     #     if self._state.adding:
@@ -590,13 +619,6 @@ class AccountTransaction(models.Model):
     #             pass
     #     else:
     #         pass
-
-    def __unicode__(self):
-        return str(self.transaction_id)
-
-    class Meta:
-        verbose_name = 'Pohyb na účtě'
-        verbose_name_plural = 'Pohyby na účtě'
 
 
 class CreditTransaction(models.Model):
@@ -615,6 +637,13 @@ class CreditTransaction(models.Model):
     demand          = models.OneToOneField(Demand, editable=False, null=True)
     reason          = models.CharField('Důvod vrácení', max_length=100, default='')
     comment         = models.CharField('Poznámka', max_length=100, default='')
+
+    class Meta:
+        verbose_name = 'Pohyb kreditu'
+        verbose_name_plural = 'Pohyby kreditu'
+
+    def __unicode__(self):
+        return self.transaction_type
 
     def set_balance(self):
         if self.lector_id:
@@ -649,16 +678,6 @@ class CreditTransaction(models.Model):
                 return super(CreditTransaction, self).save(*args, **kwargs)
             except:
                 pass
-        else:
-            pass
-
-    def __unicode__(self):
-        return self.transaction_type
-
-    class Meta:
-        verbose_name = 'Pohyb kreditu'
-        verbose_name_plural = 'Pohyby kreditu'
-
 
 
 def generate_varsym(userid):

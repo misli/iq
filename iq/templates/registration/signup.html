@@ -14,7 +14,7 @@
   </form>
 {% else %}
   <p>{{ request.user.lector }}</p>
-  <p>nejste to vy? <a href="/relog/">přihlásit jako jiný uživatel.</a></p>
+  <p>nejste to vy? <a href="/relog/registrace/">registrovat nového lektora.</a></p>
 {% endif %}
 {% endblock %}
 {% block js %}{{ form.media.js }}{% endblock %}

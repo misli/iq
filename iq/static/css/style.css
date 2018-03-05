@@ -46,6 +46,9 @@ modrá #1D70b7*/
   background-color: #CABB9F;
   text-align: center;
 }
+#footer_menu {
+  margin: 20px;
+}
 input:required {
   border: solid 2px #7A6958;
 }

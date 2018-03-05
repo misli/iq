@@ -10,7 +10,7 @@ from . import views
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^registrace/$', views.signup.as_view(), name='signup'),
-    url(r'^relog/$', views.relog, name='relog'),
+    url(r'^relog/(?P<next>[-\w]+)/$', views.relog, name='relog'),
     url(r'^prihlaseni/$', auth_views.login, name='login'),
     url(r'^odhlaseni/$', auth_views.logout, name='logout'),
     url(r'^verified-email-field/', include('verified_email_field.urls')),
@@ -32,7 +32,8 @@ urlpatterns = [
     url(r'^moje-doucovani/(?P<pk>[0-9]+)/$', views.MyDemandDetailView.as_view()),
     url(r'^moje-doucovani/(?P<slug>[a-zA-Z0-9]{32})/$', views.DemandUpdateView.as_view()),
     url(r'^nova-poptavka/', views.DemandSessionWizardView.as_view()),
-    url(r'^poptavka-zmenena/', views.demand_updated_view),
+    url(r'^poptavka-pridana/', views.message_view, {'msg':'added'}),
+    url(r'^poptavka-zmenena/', views.message_view, {'msg':'updated'}),
     url(r'^$', views.home),
 ]
 

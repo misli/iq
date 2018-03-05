@@ -55,7 +55,8 @@ class DemandSessionWizardForm1(forms.ModelForm):
         model = Demand
         fields = ['towns','subject','level', 'lessons', 'subject_desript']
         widgets = {
-            'towns':TownSelectWidget
+            'towns':TownSelectWidget,
+            'subject_desript':forms.Textarea
         }
 
 
@@ -63,6 +64,9 @@ class DemandSessionWizardForm2(forms.ModelForm):
     class Meta:
         model = Demand
         fields = [ 'students', 'slovak', 'commute', 'sex_required' , 'time_desript']
+        widgets = {
+            'time_desript':forms.Textarea
+        }
 
 
 class DemandSessionWizardForm3(forms.ModelForm):
@@ -86,8 +90,8 @@ class DemandSessionWizardForm3(forms.ModelForm):
 
 
 class DemandSessionWizardForm4(forms.ModelForm):
-    email = VerifiedEmailField(label='email', required=True)
-    agree = forms.BooleanField(required=True)
+    email = VerifiedEmailField(label='E-mail', required=True)
+    agree = forms.BooleanField(label='Souhlasím s obchodními podmínkami',required=True)
 
     class Meta:
         model = Demand

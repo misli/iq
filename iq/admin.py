@@ -39,7 +39,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 class TownAdmin(admin.ModelAdmin):
-    list_display = ('__unicode__','slug','county')
+    list_display = ('__unicode__','number_of_lectors','number_of_demands','slug','county')
 
 
 class TeachInline(admin.TabularInline):
@@ -84,6 +84,7 @@ class CreditTransactionAdmin(admin.ModelAdmin):
 
 class DemandAdmin(admin.ModelAdmin):
     readonly_fields = ('date_posted','date_updated')
+    list_display = ('subject','level','towns_as_str','status','date_posted','date_updated')
     filter_horizontal = ('towns',)
 
 

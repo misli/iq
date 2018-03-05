@@ -20,6 +20,13 @@ from django.urls import reverse
 import models, forms
 from utils import check_account
 
+
+try:
+    sets = models.Settings.objects.get(pk=1)
+except:
+    pass
+
+
 class signup(views.View):
     form_class = forms.RegistrationForm
     template_name = 'registration/signup.html'
@@ -93,6 +100,11 @@ class SubjectDetailView(views.generic.detail.DetailView):
                 context['level_list'][teach.level] = [teach.lector]
         return context
 
+################################################################################
+
+####    DEMAND VIEWS
+
+################################################################################
 
 class DemandSessionWizardView(SessionWizardView):
     template_name = 'iq/demand_create.html'
@@ -124,9 +136,14 @@ class DemandSessionWizardView(SessionWizardView):
         )
         for town in form['towns']:
             demand.towns.add(town)
-        return render(self.request, 'iq/demand_review.html', {
-            'form_list': form_list,
-        })
+        return HttpResponseRedirect('/poptavka-pridana/')
+
+
+class DemandUpdateView(views.generic.edit.UpdateView):
+    model = models.Demand
+    success_url = '/poptavka-zmenena/'
+    form_class = forms.DemandUpdateForm
+    template_name_suffix = '_update'
 
 
 @method_decorator(login_required, name='dispatch')
@@ -146,24 +163,6 @@ class DemandListView(views.generic.list.ListView):
         object_list['suitable'] = lector.get_suitable_damands(demands.filter(target=None))
         object_list['other'] = demands.filter(target=None).exclude(pk__in=object_list['suitable'])
         return object_list
-
-@method_decorator(login_required, name='dispatch')
-class MyDemandListView(views.generic.list.ListView):
-    model = models.Demand
-    template_name = 'iq/my_demand_list.html'
-
-    def get_queryset(self, *args, **kwargs):
-        # get only demands taken by the user
-        return  self.model.objects.filter( taken_by=self.request.user.lector )
-
-@method_decorator(login_required, name='dispatch')
-class MyDemandDetailView(views.generic.detail.DetailView):
-    model = models.Demand
-    template_name = 'iq/my_demand_detail.html'
-
-    def get_queryset(self, *args, **kwargs):
-        # get only demands taken by the user
-        return  self.model.objects.filter( taken_by=self.request.user.lector )
 
 
 @method_decorator(login_required, name='dispatch')
@@ -197,16 +196,6 @@ class DemandDetailView(views.generic.edit.FormView):
             return super(DemandDetailView, self).post(request, *args, **kwargs)
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
-
-
-class DemandUpdateView(views.generic.edit.UpdateView):
-    model = models.Demand
-    success_url = '/poptavka-zmenena/'
-    form_class = forms.DemandUpdateForm
-    template_name_suffix = '_update'
-
-def demand_updated_view(request):
-    return render(request, 'iq/demand_updated.html')
 
 
 class TakeDemandView(views.generic.edit.CreateView):
@@ -263,6 +252,31 @@ class TakeDemandView(views.generic.edit.CreateView):
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
 
+@method_decorator(login_required, name='dispatch')
+class MyDemandListView(views.generic.list.ListView):
+    model = models.Demand
+    template_name = 'iq/my_demand_list.html'
+
+    def get_queryset(self, *args, **kwargs):
+        # get only demands taken by the user
+        return  self.model.objects.filter( taken_by=self.request.user.lector )
+
+
+@method_decorator(login_required, name='dispatch')
+class MyDemandDetailView(views.generic.detail.DetailView):
+    model = models.Demand
+    template_name = 'iq/my_demand_detail.html'
+
+    def get_queryset(self, *args, **kwargs):
+        # get only demands taken by the user
+        return  self.model.objects.filter( taken_by=self.request.user.lector )
+
+################################################################################
+
+####    LECTOR VIEWS
+
+################################################################################
+
 class LectorListView(views.generic.list.ListView):
     model = models.Lector
 
@@ -283,6 +297,7 @@ class LectorDetailView(views.generic.detail.DetailView):
             return super(LectorDetailView, self).get(request, *args, **kwargs)
         else:
             raise Http404()
+
 
 @method_decorator(login_required, name='dispatch')
 class LectorProfileUpdateView(views.generic.edit.UpdateView):
@@ -406,9 +421,13 @@ class LectorPhoneUpdateView(views.generic.edit.UpdateView):
 def home(request):
     return render(request, 'iq/home.html', {})
 
-def relog(request):
+def message_view(request, *args, **kwargs):
+    msg = sets.messages()[kwargs['msg']]
+    return render(request, 'iq/massage.html', {'msg':msg})
+
+def relog(request, *args, **kwargs):
     logout(request)
-    return HttpResponseRedirect('/prihlaseni/')
+    return HttpResponseRedirect( '/{}/'.format(kwargs['next']) )
 
 @login_required
 def credit_topup_view(request):

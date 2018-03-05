@@ -1,12 +1,7 @@
 {% extends "iq/base.html" %}
 
 {% block content %}
-    <h3>Předmět: {{ demand }}</h3>
-    {% if demand.towns.all|length == 1 %}
-        <h3>Město: {{ demand.towns.all|first }}</h3>
-    {% else %}
-        <h3>Města: {% for t in demand.towns.all %}{{ t.name }}, {% endfor %}</h3>
-    {% endif %}
+    <h3>{{ demand.full_name }} - {{ demand }}</h3>
     <p>Popis učiva: {{ demand.subject_desript }}</p>
     <p>Kdy se můžeme sejít: {{ demand.time_desript }}</p>
     <p>Převzato: {{ demand.date_taken|date }}</p>
