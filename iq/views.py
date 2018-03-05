@@ -2,8 +2,8 @@
 import base64
 import cStringIO
 
-
 from formtools.wizard.views import SessionWizardView
+
 from django import views
 from django.db import IntegrityError, transaction
 from django.conf import settings
@@ -158,7 +158,7 @@ class DemandListView(views.generic.list.ListView):
         object_list = {}
         # sort demands: 1.targeted to the lector(are allways suitable)
         # 2. suitable for the lector but not targeted to anyone
-        # 3. all othor - neither targeted nor suitable
+        # 3. all other - neither targeted nor suitable
         object_list['targeted'] = demands.filter(target=lector.id)
         object_list['suitable'] = lector.get_suitable_damands(demands.filter(target=None))
         object_list['other'] = demands.filter(target=None).exclude(pk__in=object_list['suitable'])

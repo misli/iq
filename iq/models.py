@@ -247,7 +247,7 @@ class Category(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        super(Category, self).save(*args, **kwargs)
+        return super(Category, self).save(*args, **kwargs)
 
 
 class Scheme(models.Model):
@@ -277,7 +277,7 @@ class Subject(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        super(Subject, self).save(*args, **kwargs)
+        return super(Subject, self).save(*args, **kwargs)
 
 
 class Level(models.Model):
@@ -438,7 +438,7 @@ class Teach(models.Model):
 
     def save(self, *args, **kwargs):
         if self.subject.scheme == self.level.scheme:
-            super(Teach, self).save(*args, **kwargs)
+            return super(Teach, self).save(*args, **kwargs)
         else:
             raise IntegrityError("schemes didn't match")
 
@@ -739,13 +739,20 @@ def credit_transaction_added(sender, **kwargs):
         if self.transaction_type == 'd':
             # if charge for demand
             self.lector.credit = self.close_balance
+            if self.lector.credit <= 0:
+                # check if fairtrade is being used
+                self.lector.fairtrade = self.demand
             self.lector.save()
             self.demand.status = 2
+            self.demand.date_taken = datetime.now()
             self.demand.taken_by = self.lector
             self.demand.save()
         elif self.transaction_type == 'c':
             # if credit top-up
             self.lector.credit = self.close_balance
+            if self.lector.fairtrade and self.close_balance >= 0:
+                # check if fairtrade is being paid
+                self.lector.fairtrade = None
             self.lector.save()
         elif self.transaction_type == 'r':
             # if return credit

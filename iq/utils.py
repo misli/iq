@@ -3,6 +3,7 @@ import requests
 from datetime import datetime, timedelta
 
 from django.core.cache import cache
+from django.db import transaction
 
 import models, settings
 
@@ -49,7 +50,7 @@ def save_account_transaction_data(data):
                 bic               = t['column26']['value'] if t['column26'] else None,
                 command_id        = t['column17']['value'] if t['column17'] else None,
             )
-        return data['accountStatement']['info']['id_last_download']
+        return data['accountStatement']['info']['idLastDownload']
 
 def set_last_id():
     response = requests.get('{}/set-last-id/{}/{}/'.format( settings.FIO_API_URL,
