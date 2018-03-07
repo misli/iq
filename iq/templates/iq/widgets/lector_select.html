@@ -1,0 +1,61 @@
+{% load staticfiles %}
+
+<input id="id_free" type="radio" name="demand_type" value="f" checked><label for="id_free">Poptávna volná</label></br>
+<input id="id_targeted" type="radio" name="demand_type" value="t"><label for="id_targeted">Poptávna cílená</label>
+
+<div id="lector_select" style="display:none">
+  {% for lector in widget.lector_list %}
+  <div id="id_profile-{{ lector.id }}" class="profile background-color-light hover-background-color-dark">
+    <img class="profilePhoto" src="{% if lector.photo %}{{ lector.photo.url }}{% else %}{% static 'img/nophoto-man_1.png' %}{% endif %}">{{ lector }}
+  </div>
+  {% endfor %}
+<select name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}
+    style="">{% for group_name, group_choices, group_index in widget.optgroups %}{% if group_name %}
+  <optgroup label="{{ group_name }}">{% endif %}{% for option in group_choices %}
+  {% include option.template_name with widget=option %}{% endfor %}{% if group_name %}
+  </optgroup>{% endif %}{% endfor %}
+</select>
+</div>
+
+<script>
+function toggleType(choice){
+  if(choice == 'f') {
+    $('#id_2-target option').each(function(){
+      deselect($(this).val());
+    });
+    $('#lector_select').fadeOut();
+  } else if (choice == 't') {
+    $('#lector_select').fadeIn();
+  }
+}
+
+function select(id){
+  $('#id_profile-' + id).removeClass('background-color-light');
+  $('#id_profile-' + id).addClass('background-color-medium');
+  $('#id_2-target option[value="' + id + '"]').attr('selected','selected');
+}
+
+function deselect(id){
+  $('#id_profile-' + id).removeClass('background-color-medium');
+  $('#id_profile-' + id).addClass('background-color-light');
+  $('#id_2-target option[value="' + id + '"]').removeAttr('selected');
+}
+
+function toggleSelect(id){
+  if( $('#id_2-target option[value="' + id + '"]').attr('selected') ){
+    deselect(id);
+  } else {
+    select(id);
+  }
+}
+
+$(function(){
+  $('input[name="demand_type"]').change(function(){
+    toggleType($('input[name="demand_type"]:checked').val());
+  }).change();
+  $('.profile').click(function(event){
+    id = event.target.id.replace('id_profile-','');
+    toggleSelect(id);
+  });
+})
+</script>

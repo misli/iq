@@ -79,13 +79,13 @@ class DemandSessionWizardForm3(forms.ModelForm):
         self.fields['target'].queryset = Lector.objects.filter(
                 teach__in=Teach.objects.filter(subject=self.subject, level=self.level),
                 towns__in=self.towns
-        )
+        ).distinct()
 
     class Meta:
         model = Demand
-        fields = ['demand_type','target']
+        fields = ['target',]
         widgets = {
-            'demand_type': forms.RadioSelect
+            'target': LectorSelectWidget
         }
 
 

@@ -123,7 +123,6 @@ class DemandSessionWizardView(SessionWizardView):
     def done(self, form_list, **kwargs):
         form = self.get_all_cleaned_data()
         demand = models.Demand.objects.create(
-            demand_type = form['demand_type'],
             email = form['email'],
             first_name = form['first_name'],
             last_name = form['last_name'],
@@ -136,6 +135,8 @@ class DemandSessionWizardView(SessionWizardView):
         )
         for town in form['towns']:
             demand.towns.add(town)
+        for target in form['target']:
+            demand.target.add(target)
         return HttpResponseRedirect('/poptavka-pridana/')
 
 

@@ -7,7 +7,22 @@ a, a:hover {
   /*text-decoration: none;*/
 }
 .color-blue {
-  color: #1D70b7
+  color: #1D70b7;
+}
+.background-color-blue {
+  background-color: #1D70b7;
+}
+.background-color-dark {
+  background-color: #A48974;
+}
+.background-color-medium {
+  background-color: #B7A289;
+}
+.background-color-light {
+  background-color: #CABB9F;
+}
+.hover-background-color-dark:hover {
+  background-color: #A48974;
 }
 /*
 pozadi #CABB9F
@@ -59,7 +74,6 @@ input:required {
   display: inline-block;
   margin: 20px;
   padding: 20px;
-  background-color: #CABB9F;
 }
 #logo_div {
   float: left;

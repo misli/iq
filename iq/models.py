@@ -25,8 +25,6 @@ class TownSelectWidget(SelectMultiple):
         town_list = json.dumps([ [ t.pk, t.name, t.county, ] for t in towns ])
         context['widget']['town_list'] = town_list
         context['widget']['attrs']['id'] = 'select_towns'
-        if self.allow_multiple_selected:
-            context['widget']['attrs']['multiple'] = 'multiple'
         return context
 
     class Media:
@@ -46,6 +44,15 @@ class LevelSelectWidget(Select):
         subject_list = json.dumps({ str(s.id) : str(s.scheme.id) for s in subjects })
         context['widget']['level_list'] = level_list
         context['widget']['subject_list'] = subject_list
+        return context
+
+
+class LectorSelectWidget(SelectMultiple):
+    template_name = 'iq/widgets/lector_select.html'
+
+    def get_context(self, name, value, attrs):
+        context = super(LectorSelectWidget, self).get_context(name, value, attrs)
+        context['widget']['lector_list'] = Lector.objects.filter(pk__in=[option['value'] for option in [ group_choices[0] for group_name, group_choices, group_index in context['widget']['optgroups'] ]])
         return context
 
 
@@ -458,10 +465,6 @@ class Demand(models.Model):
         ('f', 'Chci lektorku'),
         ('m', 'Chci lektora'),
     )
-    DEMAND_TYPE_CHOICES =(
-        ('f', 'Poptávna volná'),
-        ('t', 'Poptávka cílená')
-    )
     STATUS_CHOICES =(
         (0, 'Je aktivní'),
         (1, 'Je neaktivní'),
@@ -481,7 +484,6 @@ class Demand(models.Model):
         (3, '4 a více studentů'),
     )
     agree           = models.BooleanField('Souhlasím s obchodními podmínkami',default=False, )
-    demand_type     = models.CharField('Typ poptávky', max_length=1, default='f', choices=DEMAND_TYPE_CHOICES)
     status          = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
     first_name      = models.CharField('Jméno', max_length=100)
     last_name       = models.CharField('Príjmení', max_length=100)
@@ -501,7 +503,7 @@ class Demand(models.Model):
     slovak          = models.BooleanField('Výuka ve slovenštině', default=True)
     slug            = models.CharField('Klíč', max_length=32, unique=True, editable=False)
     discount        = models.SmallIntegerField('Sleva v %', default=0, validators=[ MaxValueValidator(100), MinValueValidator(0) ])
-    target          = models.ManyToManyField(Lector, verbose_name='Zobrazit těmto lektorům', blank=True, related_name='demand_requiring')
+    target          = models.ManyToManyField(Lector, verbose_name='Výběr lektora', blank=True, related_name='demand_targeted')
     taken_by        = models.ForeignKey(Lector, verbose_name='Doučuje lektor', editable=False, null=True, related_name='demand_taken')
 
     class Meta:
@@ -513,6 +515,9 @@ class Demand(models.Model):
 
     def is_taken(self):
         return True if self.taken_by else False
+
+    def is_free(self):
+        return False if self.target else True
 
     def deactivate(self):
         self.status = 1
