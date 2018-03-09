@@ -13,7 +13,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.forms.widgets import Select, SelectMultiple
 from django.utils.crypto import get_random_string
+from django.utils.functional import cached_property
 from django.utils.text import slugify
+
+from utils import send_sms, send_sms_queue
 
 
 class TownSelectWidget(SelectMultiple):
@@ -57,18 +60,22 @@ class LectorSelectWidget(SelectMultiple):
 
 
 class Settings(models.Model):
-    lectors_terms_and_conditions        = models.TextField('Obchodní podmínky pro lektory', default='Lektoři jsou povini dodržovat tyto obchodní podmínky')
-    students_terms_and_conditions       = models.TextField('Obchodní podmínky pro studenty', default='Studenti jsou povini dodržovat tyto obchodní podmínky')
-    default_email_address               = models.EmailField('Výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
-    fair_pay_limit                      = models.PositiveSmallIntegerField('Limit pro uhrazení férovky', default=14)
-    demand_added                        = models.TextField('Potvrzení nové poptávky', default='Vaše poptávka byla úspěšně přidána do systému.\nPotvrzení jsme Vám zaslali také na e-mail, společně s odkazem pro úpravu Vaší poptávky pro případ, že by se cokoliv změnilo.\nDěkujeme, že využíváte našich služeb' )
-    demand_updated                      = models.TextField('Potvrzení úpravy poptávky', default='Vaše poptávka byla úspěšně upravena. Do E-mailu Vám byl zaslán nový odkaz pro další změny.')
-    notif_email_new_demand_subject      = models.CharField('Upozornění na novou poptávku: předmět', default='Nová poptávka', max_length=50)
-    notif_email_new_demand_message      = models.CharField('Upozornění na novou poptávku: zpráva', default='Do systému byla přidána nová poptávka', max_length=500)
-    confi_email_new_demand_subject      = models.CharField('Potvrzení nové poptávky: předmět', default='Nová poptávka', max_length=50)
-    confi_email_new_demand_message      = models.CharField('Potvrzení nové poptávky: zpráva', default='Vaše poptávka byla úspěšně přidána do systému. Zobrazit a upravit ji můžete tímto odkazem', max_length=500)
-    confi_email_demand_updated_subject  = models.CharField('Potvrzení úpravy poptávky: předmět', default='Poptávka upravena', max_length=50)
-    confi_email_demand_updated_message  = models.CharField('Potvrzení úpravy poptávky: zpráva', default='Vaše poptávka byla úspěšně upravena. Zobrazit a upravit ji můžete tímto odkazem', max_length=500)
+    lectors_terms_and_conditions    = models.TextField('Obchodní podmínky pro lektory', default='Lektoři jsou povini dodržovat tyto obchodní podmínky')
+    students_terms_and_conditions   = models.TextField('Obchodní podmínky pro studenty', default='Studenti jsou povini dodržovat tyto obchodní podmínky')
+    default_email_address           = models.EmailField('Výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
+    pay_later_limit                 = models.PositiveSmallIntegerField('Limit pro uhrazení férovky', default=14)
+    demand_added                    = models.TextField('Potvrzení nové poptávky', default='Vaše poptávka byla úspěšně přidána do systému.\nPotvrzení jsme Vám zaslali také na e-mail, společně s odkazem pro úpravu Vaší poptávky pro případ, že by se cokoliv změnilo.\nDěkujeme, že využíváte našich služeb' )
+    demand_updated                  = models.TextField('Potvrzení úpravy poptávky', default='Vaše poptávka byla úspěšně upravena. Do E-mailu Vám byl zaslán nový odkaz pro další změny.')
+    notif_new_suited_mail_subject   = models.CharField('Poptávka volná mail-předmět', default='Nová vhodná poptávka', max_length=50)
+    notif_new_suited_mail_message   = models.CharField('Poptávka volná mail-zpráva', default='Do systému byla přidána nová poptávka, která by se Ti mohla líbit.', max_length=500)
+    notif_new_suited_sms            = models.CharField('Poptávka volná sms', default='Do systemu byla pridana nova poptavka, ktera by se Ti mohla libit.', max_length=50)
+    notif_new_aimed_mail_subject    = models.CharField('Poptávka mířená mail-předmět', default='Nová mířená poptávka', max_length=50)
+    notif_new_aimed_mail_message    = models.CharField('Poptávka mířená mail-zpráva', default='Nový student si Tě vybral na doučování. Odpověz co nejdříve, jestli ho bereš, ', max_length=500)
+    notif_new_aimed_sms             = models.CharField('Poptávka mířená sms', default='Pozor, vybral si Te novy student.', max_length=50)
+    confi_new_mail_subject          = models.CharField('Nové poptávka mail-předmět', default='Nová poptávka', max_length=50)
+    confi_new_mail_message          = models.CharField('Nové poptávka mail-zpráva', default='Vaše poptávka byla úspěšně přidána do systému. Zobrazit a upravit ji můžete tímto odkazem', max_length=500)
+    confi_updated_mail_subject      = models.CharField('Upravená poptávka mail-předmět', default='Poptávka upravena', max_length=50)
+    confi_updated_mail_message      = models.CharField('Upravená poptávka mail-zpráva', default='Vaše poptávka byla úspěšně upravena. Zobrazit a upravit ji můžete tímto odkazem', max_length=500)
     hour_rate1              = models.PositiveIntegerField('Cena lekce - volná poptávka: 1 student', default=200)
     hour_rate2              = models.PositiveIntegerField('Cena lekce - volná poptávka: 2 studenti', default=250)
     hour_rate3              = models.PositiveIntegerField('Cena lekce - volná poptávka: 3 studenti', default=300)
@@ -97,6 +104,7 @@ class Settings(models.Model):
     def __unicode__(self):
         return "Nastavení"
 
+    @cached_property
     def get_charge_list(self):
         return [
             [self.charge1x1, self.charge1x2, self.charge1x5, self.charge1x10],
@@ -105,37 +113,7 @@ class Settings(models.Model):
             [self.charge4x1, self.charge4x2, self.charge4x5, self.charge4x10],
         ]
 
-    def notify_new_demand(self, demand):
-        lectors = Lector.objects.filter(is_active=True)
-        to_all = []
-        for l in lectors:
-            to_all.append(l.email())
-        send_mail(
-            self.notif_email_new_demand_subject,
-            '{}\n\nwww.{}/poptavka/{}/'.format( self.notif_email_new_demand_message, settings.DOMAIN, demand.pk ).strip(),
-            self.default_email_address,
-            to_all,
-            fail_silently=False,
-        )
-
-    def confirm_new_demand(self, demand):
-        send_mail(
-            self.confi_email_new_demand_subject,
-            '{}\n\nwww.{}/moje-doucovani/{}/'.format( self.confi_email_new_demand_message, settings.DOMAIN, demand.slug ).strip(),
-            self.default_email_address,
-            [demand.email],
-            fail_silently=False,
-        )
-
-    def confirm_demand_updated(self, demand):
-        send_mail(
-            self.confi_email_demand_updated_subject,
-            '{}\n\nwww.{}/moje-doucovani/{}/'.format( self.confi_email_demand_updated_message, settings.DOMAIN, demand.slug ).strip(),
-            self.default_email_address,
-            [demand.email],
-            fail_silently=False,
-        )
-
+    @cached_property
     def messages(self):
         return {
             'added':    self.demand_added,
@@ -306,22 +284,31 @@ class LectorManager(models.Manager):
 
 
 def user_directory_path(instance, filename):
-    return 'lector_{0}/{1}'.format(instance.user.id, filename)
+    return 'lector_{0}/{1}'.format(instance.user.lector.variable_symbol, filename)
 
 class Lector(models.Model):
     SEX_CHOICES = (
-        ('n', 'Neřeknu'),
+        ('', 'vyberte prosím'),
         ('f', 'Žena'),
         ('m', 'Muž'),
     )
-    NOTICE_CHOICES  = (
-        (0,'vůbec ne'),
-        (1,'e-mail denní přehled'),
-        (2,'e-mail ihned'),
-        (3,'e-mail ihned + denní přehled'),
-        (4,'sms ihned'),
-        (5,'sms ihned + e-mail ihned'),
-        (6,'sms ihned + e-mail denní přehled'),
+    NOTIFY_DISCOUNTED_CHOICES  = (
+        ('n','vůbec ne'),
+        ('m','e-mail'),
+        ('s','sms'),
+        ('b','e-mail i sms'),
+    )
+    NOTIFY_AIMED_CHOICES  = (
+        ('m','e-mail'),
+        ('b','e-mail i sms'),
+    )
+    NOTIFY_SUITED_CHOICES  = (
+        ('n','vůbec ne'),
+        ('d','e-mail denní přehled'),
+        ('m','e-mail ihned'),
+        ('s','sms ihned'),
+        ('a','e-mail denní přehled + sms ihned'),
+        ('b','e-mail ihned + sms ihned'),
     )
     user            = models.OneToOneField(settings.AUTH_USER_MODEL, related_name='lector', on_delete=models.PROTECT, unique=True)
     titles_before   = models.CharField('Tituly před jménem', max_length=20, blank=True, null=True)
@@ -335,7 +322,7 @@ class Lector(models.Model):
     credit          = models.DecimalField('Kredit', max_digits=12, decimal_places=2, default=0.00, editable=False)
     subjects        = models.ManyToManyField(Subject, through='Teach', verbose_name='Doučuji')
     phone           = models.DecimalField('Telefoní číslo', max_digits=9, decimal_places=0, null=True, unique=True)
-    sex             = models.CharField('Jsem', max_length=1, choices=SEX_CHOICES, default='n')
+    sex             = models.CharField('Jsem', max_length=1, choices=SEX_CHOICES, default=None, null=True)
     slovak          = models.BooleanField('Mluvím slovensky', default=False)
     home            = models.BooleanField('Doučuji u sebe doma', default=False)
     commute         = models.BooleanField('Můžu dojíždět', default=True)
@@ -346,9 +333,9 @@ class Lector(models.Model):
     friday          = models.BooleanField('Pátek', default=True)
     saturday        = models.BooleanField('Soboa', default=True)
     sundey          = models.BooleanField('Neděle', default=True)
-    notice_any      = models.PositiveSmallIntegerField('Všechny nové poptávky', choices=NOTICE_CHOICES, default=0)
-    notice_suited   = models.PositiveSmallIntegerField('Poptávky pro mě', choices=NOTICE_CHOICES, default=1)
-    notice_aimed    = models.PositiveSmallIntegerField('Poptávky cílené na mě', choices=NOTICE_CHOICES, default=2)
+    notify_aimed    = models.CharField('Poptávka mířená na mě', max_length=1, choices=NOTIFY_AIMED_CHOICES, default='b')
+    notify_suited   = models.CharField('Poptávka vhodná pro mě', max_length=1, choices=NOTIFY_SUITED_CHOICES, default='d')
+    notify_discounted = models.CharField('Zlevněná poptávka', max_length=1, choices=NOTIFY_DISCOUNTED_CHOICES, default='m')
     is_active       = models.BooleanField(default=True)
     variable_symbol = models.DecimalField("Variabilní symbol", max_digits=10, decimal_places=0, editable=False)
     fairtrade       = models.OneToOneField('Demand', null=True, blank=True, related_name='fairtrade')
@@ -363,6 +350,9 @@ class Lector(models.Model):
 
     def teach_list(self):
         return Teach.objects.filter(lector=self.id)
+
+    def teach_list_as_str(self):
+        return ['{} - {}'.format(teach.subject.name, teach.level.name) for teach in self.teach_list()]
 
     def rating(self):
         demands = Demand.objects.filter(taken_by=self.id).exclude(rating=None)
@@ -424,6 +414,7 @@ class Lector(models.Model):
     def credit_check(self, demand):
         return demand.get_charge() <= self.credit
 
+    @cached_property
     def email(self):
         return self.user.email
 
@@ -438,7 +429,7 @@ class Teach(models.Model):
     lector      = models.ForeignKey(Lector, verbose_name="Lektor")
     subject     = models.ForeignKey(Subject, verbose_name="Předmět")
     level       = models.ForeignKey(Level, verbose_name="Úroveň")
-    price       = models.IntegerField("Cena při cílené poptávce")
+    price       = models.IntegerField("Cena při mířené poptávce")
 
     def __unicode__(self):
         return '{} na úrovni {}'.format(self.subject.name, self.level.name)
@@ -483,7 +474,7 @@ class Demand(models.Model):
         (2, '3 studenti'),
         (3, '4 a více studentů'),
     )
-    agree           = models.BooleanField('Souhlasím s obchodními podmínkami',default=False, )
+    agree           = models.BooleanField('Souhlasím s obchodními podmínkami',default=False )
     status          = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
     first_name      = models.CharField('Jméno', max_length=100)
     last_name       = models.CharField('Príjmení', max_length=100)
@@ -496,14 +487,14 @@ class Demand(models.Model):
     date_taken      = models.DateTimeField('Převzato', null=True, editable=False)
     lessons         = models.PositiveSmallIntegerField('Počet lekcí', default=1, choices=LESSONS_CHOICES)
     students        = models.PositiveSmallIntegerField('Počet studentů', default=0, choices=STUDENTS_CHOICES)
-    subject_desript = models.CharField('Popis doučované láky', max_length=300)
-    time_desript    = models.CharField('Kdy se můžem sejít', max_length=300)
+    subject_descript= models.CharField('Popis doučované láky', max_length=300)
+    time_descript    = models.CharField('Kdy se můžem sejít', max_length=300)
     commute         = models.BooleanField('Můžu dojíždět', default=True)
     sex_required    = models.CharField('Požaduji pohlaví lektora', max_length=1, default='n', choices=SEX_REQUIRED_CHOICES)
     slovak          = models.BooleanField('Výuka ve slovenštině', default=True)
     slug            = models.CharField('Klíč', max_length=32, unique=True, editable=False)
     discount        = models.SmallIntegerField('Sleva v %', default=0, validators=[ MaxValueValidator(100), MinValueValidator(0) ])
-    target          = models.ManyToManyField(Lector, verbose_name='Výběr lektora', blank=True, related_name='demand_targeted')
+    target          = models.ManyToManyField(Lector, verbose_name='Výběr lektora', blank=True, related_name='demand_aimed')
     taken_by        = models.ForeignKey(Lector, verbose_name='Doučuje lektor', editable=False, null=True, related_name='demand_taken')
 
     class Meta:
@@ -516,8 +507,9 @@ class Demand(models.Model):
     def is_taken(self):
         return True if self.taken_by else False
 
+    @cached_property
     def is_free(self):
-        return False if self.target else True
+        return False if self.target.all() else True
 
     def deactivate(self):
         self.status = 1
@@ -538,12 +530,61 @@ class Demand(models.Model):
         return ', '.join([town.name for town in self.towns.all()])
 
     def get_charge(self):
-        charge = sets.get_charge_list()[self.students][self.lessons]
+        charge = sets.get_charge_list[self.students][self.lessons]
         charge -= self.discount * charge / 100
         return  charge
 
     def full_name(self):
         return '{} {}'.format(self.first_name, self.last_name)
+
+    def get_suitable_lectors(self):
+        return Lector.objects.filter(
+                teach__in=Teach.objects.filter(subject=self.subject, level=self.level),
+                towns__in=self.towns.all()
+        ).distinct()
+
+    def get_lectors_to_notify_by_email(self):
+        if self.is_free:
+            return [ str(lector.email) for lector in self.get_suitable_lectors().filter(notify_suited__in=['m','b']) ]
+        else:
+            return [ str(lector.email) for lector in Lector.objects.filter(pk__in=self.target.all()) ]
+
+    def get_lectors_to_notify_by_sms(self):
+        if self.is_free:
+            return [ str(lector.phone) for lector in self.get_suitable_lectors().filter(notify_suited__in=['s','a','b']) ]
+        else:
+            return [ str(lector.phone) for lector in Lector.objects.filter(pk__in=self.target.all(), notify_aimed='b') ]
+
+    def notify_new(self):
+        send_mail(
+            sets.notif_new_suited_mail_subject if self.is_free else sets.notif_new_aimed_mail_subject,
+            '{}\n\nwww.{}/poptavka/{}/'.format(sets.notif_new_suited_mail_message if self.is_free else sets.notif_new_aimed_mail_message, settings.DOMAIN, self.pk ).strip(),
+            sets.default_email_address,
+            self.get_lectors_to_notify_by_email(),
+            fail_silently=False,
+        )
+        send_sms_queue(
+            self.get_lectors_to_notify_by_sms(),
+            '{} www.{}/poptavka/{}/'.format(sets.notif_new_suited_sms if self.is_free else sets.notif_new_aimed_sms, settings.DOMAIN, self.pk)
+        )
+
+    def confirm_new(self):
+        send_mail(
+            sets.confi_new_mail_subject,
+            '{}\n\nwww.{}/moje-doucovani/{}/'.format( sets.confi_new_mail_message, settings.DOMAIN, self.slug ).strip(),
+            sets.default_email_address,
+            [self.email],
+            fail_silently=False,
+        )
+
+    def confirm_updated(self):
+        send_mail(
+            sets.confi_updated_mail_subject,
+            '{}\n\nwww.{}/moje-doucovani/{}/'.format( sets.confi_updated_mail_message, settings.DOMAIN, self.slug ).strip(),
+            sets.default_email_address,
+            [self.email],
+            fail_silently=False,
+        )
 
     def save(self, *args, **kwargs):
         # add random unique slug key
@@ -704,11 +745,8 @@ def lector_add(sender, **kwargs):
 
 @receiver(post_save, sender=Demand)
 def notification_demand_added(sender, **kwargs):
-    if kwargs['created']:
-        sets.notify_new_demand(kwargs['instance'])
-        sets.confirm_new_demand(kwargs['instance'])
-    else:
-        sets.confirm_demand_updated(kwargs['instance'])
+    if not kwargs['created']:
+        kwargs['instance'].confirm_updated()
 
 @receiver(post_save, sender=AccountTransaction)
 def account_transaction_added(sender, **kwargs):

@@ -48,7 +48,7 @@ class TeachInline(admin.TabularInline):
 
 
 class LectorAdmin(admin.ModelAdmin):
-    list_display = ('user','__unicode__','credit')
+    list_display = ('user','__unicode__','credit','teach_list_as_str')
     inlines = (TeachInline, )
     filter_horizontal = ('towns',)
     readonly_fields = ('user','date_registred', 'credit')

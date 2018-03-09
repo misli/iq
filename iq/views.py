@@ -130,13 +130,15 @@ class DemandSessionWizardView(SessionWizardView):
             students = form['students'],
             subject = form['subject'],
             level = form['level'],
-            subject_desript = form['subject_desript'],
-            time_desript = form['time_desript'],
+            subject_descript = form['subject_descript'],
+            time_descript = form['time_descript'],
         )
         for town in form['towns']:
             demand.towns.add(town)
         for target in form['target']:
             demand.target.add(target)
+        demand.notify_new()
+        demand.confirm_new()
         return HttpResponseRedirect('/poptavka-pridana/')
 
 
@@ -332,7 +334,6 @@ class LectorProfileUpdateView(views.generic.edit.UpdateView):
                content_type="image/jpeg",
                size=len(file.getvalue()),
                charset=None)
-            print image
             request.FILES[u'photo'] = image
         return super(LectorProfileUpdateView, self).post(request, *args, **kwargs)
 
@@ -423,7 +424,7 @@ def home(request):
     return render(request, 'iq/home.html', {})
 
 def message_view(request, *args, **kwargs):
-    msg = sets.messages()[kwargs['msg']]
+    msg = sets.messages[kwargs['msg']]
     return render(request, 'iq/massage.html', {'msg':msg})
 
 def relog(request, *args, **kwargs):

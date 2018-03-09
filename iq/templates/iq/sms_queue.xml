@@ -1,0 +1,6 @@
+<queue>
+  {% for number in number_list %}<sms>
+    <number>{{ number }}</number>
+    <message>{{ message }}</message>
+  </sms>{% endfor %}
+</queue>

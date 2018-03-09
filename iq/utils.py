@@ -1,9 +1,11 @@
 import json
 import requests
 from datetime import datetime, timedelta
+from urllib import urlencode
 
 from django.core.cache import cache
 from django.db import transaction
+from django.template.loader import get_template
 
 import models, settings
 
@@ -62,3 +64,24 @@ def check_account():
         data = get_account_transaction_data()
         last_id = save_account_transaction_data(data)
         cache.set('last_account_request', {'time': datetime.now(), 'id': last_id}, None)
+
+def send_sms(number, message):
+    params = {
+        'login' : settings.SMS_LOGIN,
+        'password' : settings.SMS_PASSWORD,
+        'action' : 'send_sms',
+        'number' : number,
+        'message' : massage
+    }
+    print '{}{}'.format(settings.SMS_URL, urlencode(params) )
+    # return requests.get(url=settings.SMS_URL, params=params)
+
+def send_sms_queue(numbers, message):
+    data = get_template('iq/sms_queue.xml').render({'number_list':numbers, 'message':message})
+    params = {
+        'login' : settings.SMS_LOGIN,
+        'password' : settings.SMS_PASSWORD,
+        'action' : 'xml_queue',
+    }
+    print '{}{}\n{}'.format(settings.SMS_URL, urlencode(params), data)
+    # return requests.post(url=settings.SMS_URL, params=params, data=data)

@@ -143,3 +143,7 @@ LOGIN_URL = '/prihlaseni/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+SMS_LOGIN = 'sms_login'
+SMS_PASSWORD = 'sms_raw_password'
+SMS_URL = 'http://api.smsbrana.cz/smsconnect/http.php?'

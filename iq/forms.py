@@ -53,19 +53,19 @@ class DemandSessionWizardForm1(forms.ModelForm):
             empty_label=None, widget=LevelSelectWidget)
     class Meta:
         model = Demand
-        fields = ['towns','subject','level', 'lessons', 'subject_desript']
+        fields = ['towns','subject','level', 'lessons', 'subject_descript']
         widgets = {
             'towns':TownSelectWidget,
-            'subject_desript':forms.Textarea
+            'subject_descript':forms.Textarea
         }
 
 
 class DemandSessionWizardForm2(forms.ModelForm):
     class Meta:
         model = Demand
-        fields = [ 'students', 'slovak', 'commute', 'sex_required' , 'time_desript']
+        fields = [ 'students', 'slovak', 'commute', 'sex_required' , 'time_descript']
         widgets = {
-            'time_desript':forms.Textarea
+            'time_descript':forms.Textarea
         }
 
 
@@ -124,8 +124,8 @@ class LectorSettingsUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Lector
-        fields = ['phone', 'sex', 'slovak', 'commute', 'home', 'notice_aimed',
-                'notice_suited', 'notice_any', 'monday', 'tuesday', 'wednesday',
+        fields = ['phone', 'sex', 'slovak', 'commute', 'home', 'notify_aimed',
+                'notify_suited', 'notify_discounted', 'monday', 'tuesday', 'wednesday',
                 'thursday','friday','saturday','sundey',]
 
 

@@ -27,12 +27,12 @@ def send_code(number, fieldsetup):
     # store code and expiration time in cache
     cache.set(fieldsetup.cache_prefix + str(number), (context['expiration_time'], context['code']))
     # create http GET request to sms gate server
-    url = {
+    params = {
         'login' : settings.SMS_LOGIN,
         'password' : settings.SMS_PASSWORD,
         'action' : 'send_sms',
         'number' : number,
         'message' : get_template(fieldsetup.sms_template_txt).render(context),
     }
-    print '{}{}'.format(settings.SMS_URL, urlencode(url) )
-    # r = requests.get('{}{}'.format(settings.SMS_URL, urlencode(url) ))
+    print '{}{}'.format(settings.SMS_URL, urlencode(params))
+    # r = requests.get(url=settings.SMS_URL, params=params )
