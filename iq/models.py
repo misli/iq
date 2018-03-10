@@ -60,6 +60,7 @@ class LectorSelectWidget(SelectMultiple):
 
 
 class Settings(models.Model):
+    """Model for superuser's settings."""
     lectors_terms_and_conditions    = models.TextField('Obchodní podmínky pro lektory', default='Lektoři jsou povini dodržovat tyto obchodní podmínky')
     students_terms_and_conditions   = models.TextField('Obchodní podmínky pro studenty', default='Studenti jsou povini dodržovat tyto obchodní podmínky')
     default_email_address           = models.EmailField('Výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
@@ -121,12 +122,13 @@ class Settings(models.Model):
         }
 
     def save(self, *args, **kwargs):
-        # neuloží víc než jedno nastavení
+        # don't save more than one instance of Settings
         if Settings.objects.exists() and not self.pk:
             pass
         else:
             return super(Settings, self).save(*args, **kwargs)
 
+# cereate a shortcut to Settings
 try:
     sets = Settings.objects.get(pk=1)
 except:
@@ -236,6 +238,10 @@ class Category(models.Model):
 
 
 class Scheme(models.Model):
+    """Scheme of Subject's Levels.
+
+    Different Subjects can have different set of Levels.
+    """
     name = models.CharField('název', max_length=50, unique=True)
 
     class Meta:
@@ -268,7 +274,7 @@ class Subject(models.Model):
 class Level(models.Model):
     name    = models.CharField('Název úrovně', max_length=50)
     order   = models.PositiveSmallIntegerField('Pořadí')
-    scheme  = models.ForeignKey(Scheme, on_delete=models.PROTECT, verbose_name = 'Systém úrovní')
+    scheme  = models.ForeignKey(Scheme, on_delete=models.PROTECT, verbose_name='Systém úrovní')
 
     class Meta:
         verbose_name = "Úroveň"
@@ -374,7 +380,7 @@ class Lector(models.Model):
             return False
 
     def take_ability_check(self, demand):
-        """ return False if "able to take", otherwise the reason why not able """
+        """Return False if "able to take", otherwise the reason why not able."""
         ABLE_CHOICES=[
             False,
             "nemáš aktivní účet",
@@ -406,6 +412,7 @@ class Lector(models.Model):
             return ABLE_CHOICES[6]
 
     def get_suitable_damands(self, demands):
+        """Filter given queryset of demands and return those which are suitable for lector."""
         suitable = demands.none()
         for teach in self.teach_list():
             suitable = suitable | demands.filter(subject=teach.subject, level=teach.level, towns__in=self.towns.all()).distinct()
@@ -426,6 +433,10 @@ class Lector(models.Model):
 
 
 class Teach(models.Model):
+    """Intermediary model between Lector and Subject.
+
+    It describe what Level of Subject can Lector teach and at what price.
+    """
     lector      = models.ForeignKey(Lector, verbose_name="Lektor")
     subject     = models.ForeignKey(Subject, verbose_name="Předmět")
     level       = models.ForeignKey(Level, verbose_name="Úroveň")
@@ -451,6 +462,12 @@ class Holyday(models.Model):
 
 
 class Demand(models.Model):
+    """Model of Demand.
+
+    Demand can be 'free' or 'aimed':
+    'free' means that any Lector can take it.
+    'aimed' means only those Lectors who are selected in target can see and take it.
+    """
     SEX_REQUIRED_CHOICES = (
         ('n', 'Ne'),
         ('f', 'Chci lektorku'),
@@ -607,6 +624,7 @@ class Demand(models.Model):
 
 
 class AccountRequest(models.Model):
+    """Record of each request sent to bank API."""
     account_id      = models.DecimalField("Číslo účtu", max_digits=10, decimal_places=0, editable=False)
     # bank_id         = models.CharField("Číslo banky", max_length=4)
     # currency        = models.CharField("Měna", max_length=3)
@@ -630,6 +648,7 @@ class AccountRequest(models.Model):
 
 
 class AccountTransaction(models.Model):
+    """Record of each change on bank account."""
     transaction_id  = models.DecimalField('ID pohybu', max_digits=12, decimal_places=0, unique=True, editable=False)
     date            = models.DateField('Datum', editable=False)
     volume          = models.DecimalField('Objem', max_digits=18, decimal_places=2)# editable=False
@@ -668,6 +687,22 @@ class AccountTransaction(models.Model):
 
 
 class CreditTransaction(models.Model):
+    """Record of change of credit.
+
+    When credit have to be changed, CreditTransaction must be successfully saved
+    first. CreditTransaction can be only created by these actions:
+
+    1. A new AccountTransaction with valid variable_symbol is just added.
+    2. Lector just took a Demand.
+    3. A new SuperuserCreditReturn is just added.
+    4. A new AccountTransaction match SuperuserCreditBlock with valid variable_symbol
+    and specific_symbol, and thus new MoneyReturn is just added.
+
+    No Superuser have permission to add or modify CreditTransaction directly.
+    Superuser only can add SuperuserCreditReturn or add SuperuserCreditBlock and
+    make a payment with appropriate specific_symbol based on SuperuserCreditBlock id.
+    """
+    # SuperuserCreditReturn, SuperuserCreditBlock and MoneyReturn are not implemented yet.
     TRANSACTION_TYPE_CHOICES =(
         ('d', 'Poplatek za převzetí poptávky'),
         ('c', 'Dobytí kreditu'),
@@ -726,22 +761,22 @@ class CreditTransaction(models.Model):
                 pass
 
 
-def generate_varsym(userid):
-    # generate unique variable symbol
-    varsym = str(userid)
+def generate_symbol(id):
+    """Generate unique symbol based on given id."""
+    symbol = str(id)
     balance = [4,8,5,10,9,7,3,6]
     complement = ['00','50','09','40','07','30','05','20','03','10','01']
     s = 0
-    x = varsym[::-1]
+    x = symbol[::-1]
     for i in range(len(x)):
         s += int(x[i]) * balance[i]
-    return int( varsym + complement[ s % 11 ] )
+    return int( symbol + complement[ s % 11 ] )
 
 @receiver(post_save, sender=User)
 def lector_add(sender, **kwargs):
-    # create a Lector for every new User with unique variable_symbol
+    """Create a Lector for every new User with unique variable_symbol."""
     if kwargs['created']:
-        l = Lector.objects.create( user=kwargs['instance'], variable_symbol=generate_varsym( kwargs['instance'].pk ))
+        l = Lector.objects.create( user=kwargs['instance'], variable_symbol=generate_symbol( kwargs['instance'].pk ))
 
 @receiver(post_save, sender=Demand)
 def notification_demand_added(sender, **kwargs):
@@ -750,8 +785,13 @@ def notification_demand_added(sender, **kwargs):
 
 @receiver(post_save, sender=AccountTransaction)
 def account_transaction_added(sender, **kwargs):
-    # only take place if AccountTransaction is just created
+    """Create new CreditTransaction
+
+    Check if new 'just created' AccountTransaction has a valid variable_symbol.
+    If so, create new CreditTransaction related to appropriate Lector.
+    """
     # if kwargs['created']:
+    # only take place if AccountTransaction is just created
     lector = None
     try:
         lector = Lector.objects.get( variable_symbol=kwargs['instance'].variable_symbol )
@@ -776,8 +816,13 @@ def account_transaction_added(sender, **kwargs):
 
 @receiver(post_save, sender=CreditTransaction)
 def credit_transaction_added(sender, **kwargs):
-    # only take place if CreditTransaction is just created
+    """ The only one function that can change lector's credit.
+
+    The only time it's being called is when a new CreditTransaction
+    object is just created.
+    """"
     if kwargs['created']:
+        # only take place if CreditTransaction is just created
         self = kwargs['instance']
         if self.transaction_type == 'd':
             # if charge for demand
