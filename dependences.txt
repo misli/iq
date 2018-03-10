@@ -1,3 +1,5 @@
+Django==1.11
 django-verified-email-field
 django-formtools
+Pillow
 requests
