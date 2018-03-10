@@ -344,7 +344,7 @@ class Lector(models.Model):
     notify_discounted = models.CharField('Zlevněná poptávka', max_length=1, choices=NOTIFY_DISCOUNTED_CHOICES, default='m')
     is_active       = models.BooleanField(default=True)
     variable_symbol = models.DecimalField("Variabilní symbol", max_digits=10, decimal_places=0, editable=False)
-    fairtrade       = models.OneToOneField('Demand', null=True, blank=True, related_name='fairtrade')
+    pay_later       = models.OneToOneField('Demand', null=True, blank=True, related_name='pay_later')
     objects         = LectorManager()
 
     class Meta:
@@ -540,8 +540,8 @@ class Demand(models.Model):
     def is_discounted(self):
         return True if self.discount!=0 else False
 
-    def fair_pay_befor(self):
-        return self.date_taken + timedelta(days=sets.fair_pay_limit())
+    def pay_later_befor(self):
+        return self.date_taken + timedelta(days=sets.pay_later_limit())
 
     def towns_as_str(self):
         return ', '.join([town.name for town in self.towns.all()])
@@ -828,8 +828,8 @@ def credit_transaction_added(sender, **kwargs):
             # if charge for demand
             self.lector.credit = self.close_balance
             if self.lector.credit <= 0:
-                # check if fairtrade is being used
-                self.lector.fairtrade = self.demand
+                # check if pay_later is being used
+                self.lector.pay_later = self.demand
             self.lector.save()
             self.demand.status = 2
             self.demand.date_taken = datetime.now()
@@ -838,9 +838,9 @@ def credit_transaction_added(sender, **kwargs):
         elif self.transaction_type == 'c':
             # if credit top-up
             self.lector.credit = self.close_balance
-            if self.lector.fairtrade and self.close_balance >= 0:
-                # check if fairtrade is being paid
-                self.lector.fairtrade = None
+            if self.lector.pay_later and self.close_balance >= 0:
+                # check if pay_later is being paid
+                self.lector.pay_later = None
             self.lector.save()
         elif self.transaction_type == 'r':
             # if return credit

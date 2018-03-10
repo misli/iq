@@ -183,7 +183,7 @@ class DemandDetailView(views.generic.edit.FormView):
             context['lector'] = self.request.user.lector
             context['not_able'] = context['lector'].take_ability_check(context['demand'])
             context['can_affort'] = context['lector'].credit_check(context['demand'])
-            context['can_do_fairtrade'] = True if not context['lector'].fairtrade else False
+            context['can_pay_later'] = True if not context['lector'].pay_later else False
         else:
             context['active'] = False
         return context
@@ -194,7 +194,7 @@ class DemandDetailView(views.generic.edit.FormView):
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_do_fairtrade']):
+        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_pay_later']):
             self.success_url = '/vzit-poptavku/{}/'.format( kwargs['pk'] )
             return super(DemandDetailView, self).post(request, *args, **kwargs)
         else:
@@ -217,7 +217,7 @@ class TakeDemandView(views.generic.edit.CreateView):
             context['lector'] = self.request.user.lector
             context['not_able'] = context['lector'].take_ability_check( context['demand'] )
             context['can_affort'] = context['lector'].credit_check(context['demand'])
-            context['can_do_fairtrade'] = True if not context['lector'].fairtrade else False
+            context['can_pay_later'] = True if not context['lector'].pay_later else False
         else:
             context['active'] = False
         return context
@@ -242,14 +242,14 @@ class TakeDemandView(views.generic.edit.CreateView):
     def get(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
         self.object = None
-        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_do_fairtrade']):
+        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_pay_later']):
             return self.render_to_response(self.context)
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_do_fairtrade']):
+        if self.context['active'] and not self.context['not_able'] and (self.context['can_affort'] or self.context['can_pay_later']):
             return super(TakeDemandView, self).post(request, *args, **kwargs)
         else:
             return HttpResponseRedirect('/poptavka/{}/'.format(kwargs['pk']))
