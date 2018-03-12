@@ -34,6 +34,10 @@ urlpatterns = [
     url(r'^nova-poptavka/', views.DemandSessionWizardView.as_view()),
     url(r'^poptavka-pridana/', views.message_view, {'msg':'added'}),
     url(r'^poptavka-zmenena/', views.message_view, {'msg':'updated'}),
+    url(r'^obchodni-podminky/lektor/', views.message_view, {'msg':'lector_tac'}),
+    url(r'^obchodni-podminky/student/', views.message_view, {'msg':'student_tac'}),
+    url(r'^o-nas/', views.message_view, {'msg':'about_us'}),
+    url(r'^kontakt/', views.message_view, {'msg':'contact'}),
     url(r'^$', views.home),
 ]
 

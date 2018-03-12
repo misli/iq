@@ -7,6 +7,7 @@ from verified_phone_field.forms import VerifiedPhoneField
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.forms.models import inlineformset_factory
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -40,7 +41,7 @@ class TakeDemandForm(forms.Form):
 
 class RegistrationForm(UserCreationForm):
     email = VerifiedEmailField(label='E-mail', required=True)
-    agree = forms.BooleanField(label='Souhlasím s obchodními podmínkami', required=True)
+    agree = forms.BooleanField(label=mark_safe('Souhlasím s <a href="/obchodni-podminky/lektor/">obchodními podmínkami</a>'), required=True)
     class Meta:
         model = User
         fields = ['email', 'password1', 'password2', 'agree']
@@ -63,7 +64,7 @@ class DemandSessionWizardForm1(forms.ModelForm):
 class DemandSessionWizardForm2(forms.ModelForm):
     class Meta:
         model = Demand
-        fields = [ 'students', 'slovak', 'commute', 'sex_required' , 'time_descript']
+        fields = ['students', 'slovak', 'commute', 'sex_required' , 'time_descript']
         widgets = {
             'time_descript':forms.Textarea
         }
@@ -91,11 +92,20 @@ class DemandSessionWizardForm3(forms.ModelForm):
 
 class DemandSessionWizardForm4(forms.ModelForm):
     email = VerifiedEmailField(label='E-mail', required=True)
-    agree = forms.BooleanField(label='Souhlasím s obchodními podmínkami',required=True)
+    agree = forms.BooleanField(label=mark_safe('Souhlasím s <a href="/obchodni-podminky/student/">obchodními podmínkami</a>'), required=True)
 
     class Meta:
         model = Demand
-        fields = ['first_name', 'last_name', 'email','agree']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'prefer_phone', 'agree']
+        widgets = {
+            'prefer_phone': forms.Select
+        }
+
+    def clean(self):
+        cleaned_data = super(DemandSessionWizardForm4, self).clean()
+        if cleaned_data['prefer_phone'] and not cleaned_data['phone']:
+            raise forms.ValidationError("Přejete-li si být kontaktován(a) telefonicky, vyplňte prosím telefon.")
+        return cleaned_data
 
 
 TeachFormSet = inlineformset_factory(Lector, Teach,
@@ -140,7 +150,7 @@ class UserEmailUpdateForm(forms.ModelForm):
     def clean(self):
         # check the original_email to prevent tamper
         cleaned_data = super(UserEmailUpdateForm, self).clean()
-        if self.original_email != self.cleaned_data['email']:
+        if self.original_email != cleaned_data['email']:
             raise forms.ValidationError("Původní e-mail nesouhlasí.")
         return cleaned_data
 

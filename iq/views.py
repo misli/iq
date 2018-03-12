@@ -123,7 +123,10 @@ class DemandSessionWizardView(SessionWizardView):
     def done(self, form_list, **kwargs):
         form = self.get_all_cleaned_data()
         demand = models.Demand.objects.create(
+            agree = form['agree'],
             email = form['email'],
+            phone = form['phone'],
+            prefer_phone = form['prefer_phone'],
             first_name = form['first_name'],
             last_name = form['last_name'],
             lessons = form['lessons'],
@@ -132,6 +135,9 @@ class DemandSessionWizardView(SessionWizardView):
             level = form['level'],
             subject_descript = form['subject_descript'],
             time_descript = form['time_descript'],
+            slovak = form['slovak'],
+            commute = form['commute'],
+            sex_required = form['sex_required'],
         )
         for town in form['towns']:
             demand.towns.add(town)

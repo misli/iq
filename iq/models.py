@@ -63,6 +63,8 @@ class Settings(models.Model):
     """Model for superuser's settings."""
     lectors_terms_and_conditions    = models.TextField('Obchodní podmínky pro lektory', default='Lektoři jsou povini dodržovat tyto obchodní podmínky')
     students_terms_and_conditions   = models.TextField('Obchodní podmínky pro studenty', default='Studenti jsou povini dodržovat tyto obchodní podmínky')
+    about                           = models.TextField('O nás', default='O nás')
+    contact                         = models.TextField('Kontakt', default='Kontakt')
     default_email_address           = models.EmailField('Výchozí adresa pro odesílání emailu', default='info@'+settings.DOMAIN)
     pay_later_limit                 = models.PositiveSmallIntegerField('Limit pro uhrazení férovky', default=14)
     demand_added                    = models.TextField('Potvrzení nové poptávky', default='Vaše poptávka byla úspěšně přidána do systému.\nPotvrzení jsme Vám zaslali také na e-mail, společně s odkazem pro úpravu Vaší poptávky pro případ, že by se cokoliv změnilo.\nDěkujeme, že využíváte našich služeb' )
@@ -118,7 +120,11 @@ class Settings(models.Model):
     def messages(self):
         return {
             'added':    self.demand_added,
-            'updated':  self.demand_updated
+            'updated':  self.demand_updated,
+            'lector_tac':  self.lectors_terms_and_conditions,
+            'student_tac':  self.students_terms_and_conditions,
+            'about_us':  self.about,
+            'contact':  self.contact,
         }
 
     def save(self, *args, **kwargs):
@@ -491,11 +497,17 @@ class Demand(models.Model):
         (2, '3 studenti'),
         (3, '4 a více studentů'),
     )
+    PREFER_PHONE_CHOICES =(
+        (False, 'E-mail'),
+        (True, 'Telefon')
+    )
     agree           = models.BooleanField('Souhlasím s obchodními podmínkami',default=False )
     status          = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
     first_name      = models.CharField('Jméno', max_length=100)
     last_name       = models.CharField('Príjmení', max_length=100)
     email           = models.EmailField('E-mail')
+    phone           = models.DecimalField('Telefoní číslo', max_digits=9, decimal_places=0, null=True, blank=True)
+    prefer_phone    = models.BooleanField('Preferovaný způsob kontaktu', choices=PREFER_PHONE_CHOICES, default=False)
     towns           = models.ManyToManyField(Town, verbose_name='Město')
     subject         = models.ForeignKey(Subject, on_delete=models.PROTECT, verbose_name='Předmět')
     level           = models.ForeignKey(Level, on_delete=models.PROTECT, verbose_name='Úroveň')
@@ -820,7 +832,7 @@ def credit_transaction_added(sender, **kwargs):
 
     The only time it's being called is when a new CreditTransaction
     object is just created.
-    """"
+    """
     if kwargs['created']:
         # only take place if CreditTransaction is just created
         self = kwargs['instance']
