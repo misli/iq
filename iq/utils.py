@@ -9,9 +9,6 @@ from django.template.loader import get_template
 
 import models, settings
 
-cache.set('last_account_request', {
-        'time': datetime.now() - timedelta(seconds=settings.FIO_API_MIN_REQUEST_INTERVAL),
-        'id': 14462590267}, None)
 
 def get_account_transaction_data():
     response = requests.get('{}/last/{}/transactions.json'.format(settings.FIO_API_URL, settings.FIO_API_TOKEN))
@@ -52,18 +49,42 @@ def save_account_transaction_data(data):
                 bic               = t['column26']['value'] if t['column26'] else None,
                 command_id        = t['column17']['value'] if t['column17'] else None,
             )
-        return data['accountStatement']['info']['idLastDownload']
+    return int(models.AccountTransaction.objects.latest().transaction_id)
+
+def get_last_transaction_id():
+    """Try to get last transaction_id from database.
+    If no transaction is stored in the database return initial value.
+    """
+    try:
+        last_id = models.AccountTransaction.objects.latest().transaction_id
+    except models.AccountTransaction.DoesNotExist:
+        last_id = 0
+        # last_id = 14462590267
+    return last_id
 
 def set_last_id():
+    if cache.get('last_account_request'):
+        last_id = cache.get('last_account_request')['id']
+    else:
+        last_id = get_last_transaction_id()
     response = requests.get('{}/set-last-id/{}/{}/'.format( settings.FIO_API_URL,
-            settings.FIO_API_TOKEN, cache.get('last_account_request')['id'] ))
+            settings.FIO_API_TOKEN, last_id ))
     return response
 
 def check_account():
-    if cache.get('last_account_request')['time'] + timedelta(seconds=settings.FIO_API_MIN_REQUEST_INTERVAL) <= datetime.now():
+    # first check if last_account_request is cached
+    last_request = cache.get('last_account_request')
+    if last_request == None:
+        # if last_account_request is not cached
+        last_request = {
+                'time': datetime.now() - timedelta(seconds=settings.FIO_API_MIN_REQUEST_INTERVAL),
+                'id': get_last_transaction_id()}
+
+    if last_request['time'] + timedelta(seconds=settings.FIO_API_MIN_REQUEST_INTERVAL) <= datetime.now():
         data = get_account_transaction_data()
-        last_id = save_account_transaction_data(data)
-        cache.set('last_account_request', {'time': datetime.now(), 'id': last_id}, None)
+        if last_request['id'] < data['accountStatement']['info']['idTo']:
+            last_id = save_account_transaction_data(data)
+            cache.set('last_account_request', {'time': datetime.now(), 'id': last_id}, None)
 
 def send_sms(number, message):
     params = {

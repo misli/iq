@@ -439,4 +439,5 @@ def relog(request, *args, **kwargs):
 
 @login_required
 def credit_topup_view(request):
+    check_account()
     return render(request, 'iq/credit_topup.html', {'account_number':settings.FIO_ACCOUNT_NUMBER})

@@ -16,7 +16,6 @@ from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import slugify
 
-from utils import send_sms, send_sms_queue
 
 
 class TownSelectWidget(SelectMultiple):
@@ -592,7 +591,7 @@ class Demand(models.Model):
             self.get_lectors_to_notify_by_email(),
             fail_silently=False,
         )
-        send_sms_queue(
+        utils.send_sms_queue(
             self.get_lectors_to_notify_by_sms(),
             '{} www.{}/poptavka/{}/'.format(sets.notif_new_suited_sms if self.is_free else sets.notif_new_aimed_sms, settings.DOMAIN, self.pk)
         )
@@ -653,6 +652,7 @@ class AccountRequest(models.Model):
     class Meta:
         verbose_name = 'Požadavek na výpis'
         verbose_name_plural = 'Požadavky na výpis'
+        get_latest_by = 'id_to'
 
     def __unicode__(self):
         return str(self.date_end)
@@ -684,6 +684,7 @@ class AccountTransaction(models.Model):
     class Meta:
         verbose_name = 'Pohyb na účtě'
         verbose_name_plural = 'Pohyby na účtě'
+        get_latest_by = 'transaction_id'
 
     def __unicode__(self):
         return str(self.transaction_id)
@@ -858,7 +859,6 @@ def credit_transaction_added(sender, **kwargs):
             # if return credit
             self.lector.credit = self.close_balance
             self.lector.save()
-        else:
-            pass
-    else:
-        pass
+
+
+    import utils

@@ -28,8 +28,8 @@ SECRET_KEY = 'au90-vdp+=)k8ib&zz&b_oo(mbc@%i77iwy(z_gnuu0db2_-u#'
 # bank account number
 FIO_ACCOUNT_NUMBER = '1234567890/2010'
 # interval in seconds
-FIO_API_MIN_REQUEST_INTERVAL = 30
 FIO_API_TOKEN = 'naDGvrHFt4NMo7ZC9hO2zIryCNg9NmF08wB6u7RAPuGTJXXNIWk3apRXRJ168fgw'
+FIO_API_MIN_REQUEST_INTERVAL = 60
 FIO_API_URL = 'https://www.fio.cz/ib_api/rest'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -37,6 +37,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
 
 # Application definition
 
