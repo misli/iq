@@ -15,6 +15,7 @@ from django.forms import ValidationError
 from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
+from django.utils.translation import ugettext_lazy as _
 from django.urls import reverse
 
 import models, forms

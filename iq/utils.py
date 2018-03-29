@@ -92,7 +92,7 @@ def send_sms(number, message):
         'password' : settings.SMS_PASSWORD,
         'action' : 'send_sms',
         'number' : number,
-        'message' : massage
+        'message' : message,
     }
     print '{}{}'.format(settings.SMS_URL, urlencode(params) )
     # return requests.get(url=settings.SMS_URL, params=params)
