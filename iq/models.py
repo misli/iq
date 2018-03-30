@@ -16,6 +16,7 @@ from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import slugify
 
+from . import utils
 
 
 class TownSelectWidget(SelectMultiple):
@@ -789,7 +790,7 @@ def generate_symbol(id):
 def lector_add(sender, **kwargs):
     """Create a Lector for every new User with unique variable_symbol."""
     if kwargs['created']:
-        l = Lector.objects.create( user=kwargs['instance'], variable_symbol=generate_symbol( kwargs['instance'].pk ))
+        Lector.objects.create( user=kwargs['instance'], variable_symbol=generate_symbol( kwargs['instance'].pk ))
 
 @receiver(post_save, sender=Demand)
 def notification_demand_added(sender, **kwargs):
